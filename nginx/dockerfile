@@ -3,7 +3,3 @@ FROM nginx:1.17
 COPY ./config_files/default.conf ./etc/nginx/conf.d/
 
 COPY ./index.html ./usr/share/nginx/html/index.html
-
-COPY ./config_files/localhost-key.pem ./etc/nginx/
-
-COPY ./config_files/localhost.pem ./etc/nginx/
