@@ -10,8 +10,8 @@ const handle = app.getRequestHandler()
 const url = process.env.MONGO_URL
 
 const fs = require('fs')
-const key = fs.readFileSync('./etc/letsencrypt/live/naraapi.com/privkey.pem')
-const cert = fs.readFileSync('./etc/letsencrypt/live/naraapi.com/fullchain.pem')
+const key = fs.readFileSync('/etc/letsencrypt/live/naraapi.com/privkey.pem')
+const cert = fs.readFileSync('/etc/letsencrypt/live/naraapi.com/fullchain.pem')
 
 const taskRouter = require('./customserver/routes/taskRouter')
 const userTaskRouter = require('./customserver/routes/userTaskRouter')

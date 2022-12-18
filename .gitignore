@@ -5,7 +5,8 @@ localhost-key.pem
 localhost.pem
 .env*
 ca.*
-./letsencrypt
+/certbot
+
 ### NextJS ###
 # Dependencies
 /node_modules

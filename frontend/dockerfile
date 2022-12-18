@@ -6,7 +6,7 @@ COPY package.json .
 
 RUN npm install
 
-COPY ./config_files .
+COPY ./config_files ./config_files
 
 COPY . .
 
