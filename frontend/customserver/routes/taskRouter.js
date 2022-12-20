@@ -29,8 +29,8 @@ router.get('/sajeon/:departname', async (req, res) => {
             }                
         }
     }
-    getData = async (api) => {
-        const array = api.split('||')
+    getData = async (apis) => {
+        const array = apis.split('||')
         await Promise.all([axios.get(array[0]), axios.get(array[1]), axios.get(array[2])])
         .then((responses) => {responses.forEach((response) => {dataProcess(response)})})
         dataSet.sort((a, b) => { return a.rcptDt > b.rcptDt ? -1 :  a.rcptDt < b.rcptDt ? 1 : 0 })
@@ -74,9 +74,9 @@ router.post('/sajeon', async (req, res) => {
 
 //본공고
 router.get('/bone/:departname', async (req, res) => {
-    const url = 'http://apis.data.go.kr/1230000/BidPublicInfoService02/getBidPblancListInfoCnstwkPPSSrch'
-    const url1 = 'http://apis.data.go.kr/1230000/BidPublicInfoService02/getBidPblancListInfoServcPPSSrch'
-    const url2 = 'http://apis.data.go.kr/1230000/BidPublicInfoService02/getBidPblancListInfoThngPPSSrch'
+    const url = 'http://apis.data.go.kr/1230000/BidPublicInfoService03/getBidPblancListInfoCnstwkPPSSrch'
+    const url1 = 'http://apis.data.go.kr/1230000/BidPublicInfoService03/getBidPblancListInfoServcPPSSrch'
+    const url2 = 'http://apis.data.go.kr/1230000/BidPublicInfoService03/getBidPblancListInfoThngPPSSrch'
     const departname = 'dminsttNm=' + encodeURIComponent(req.params.departname)
     const date = 'inqryBgnDt='+ req.query.beginDate +'&inqryEndDt=' + req.query.endDate
     const api = (url + "?"+ serviceKey + "&" + datasize + "&inqryDiv=1&" + date + '&' + departname + '&' + type)
@@ -93,21 +93,22 @@ router.get('/bone/:departname', async (req, res) => {
             }                
         }
     }
+
     getData = async (api) => {
         const array = api.split('||')
-        console.log(typeof(array))
         await Promise.all([axios.get(array[0]), axios.get(array[1]), axios.get(array[2])])
         .then((responses) => {responses.forEach((response) => {dataProcess(response)})})
         dataSet.sort((a, b) => { return a.rcptDt > b.rcptDt ? -1 :  a.rcptDt < b.rcptDt ? 1 : 0 })
         res.send(dataSet)
-    }
+    }    
+
     getData(api + '||' + api1 + '||' + api2)
 })
 
 router.post('/bone', async (req, res) => {
-    const urls = ['http://apis.data.go.kr/1230000/BidPublicInfoService02/getBidPblancListInfoCnstwkPPSSrch',
-    'http://apis.data.go.kr/1230000/BidPublicInfoService02/getBidPblancListInfoServcPPSSrch',
-    'http://apis.data.go.kr/1230000/BidPublicInfoService02/getBidPblancListInfoCnstwkPPSSrch']
+    const urls = ['http://apis.data.go.kr/1230000/BidPublicInfoService03/getBidPblancListInfoCnstwkPPSSrch',
+    'http://apis.data.go.kr/1230000/BidPublicInfoService03/getBidPblancListInfoServcPPSSrch',
+    'http://apis.data.go.kr/1230000/BidPublicInfoService03/getBidPblancListInfoCnstwkPPSSrch']
     const departs = req.body.departList
     const newApi = new Array()
     const dataSet = []
