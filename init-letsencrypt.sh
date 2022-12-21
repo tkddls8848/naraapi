@@ -5,7 +5,7 @@ if ! [ -x "$(command -v docker-compose)" ]; then
   exit 1
 fi
 
-domains="naraapi.com"
+domains=(naraapi.com www.naraapi.com)
 rsa_key_size=4096
 data_path="./certbot"
 email="tkddls8848@naver.com" # Adding a valid address is strongly recommended
