@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { TrashIcon } from '@heroicons/react/24/outline'
 
 const TASK_TYPE_LABELS = {
   sajeon: '사전공고',
@@ -19,16 +20,25 @@ export default function UserTasks({ usertask }) {
   }
 
   return (
-    <div className="m-3 p-4 bg-white rounded-lg border-2 border-gray-300">
-      <p>유저명 : {userName}</p>
-      <p>업무 타입 : {TASK_TYPE_LABELS[taskType] ?? TASK_TYPE_LABELS.bone}</p>
-      <p>업무명 : {taskTitle}</p>
-      <button
-        className="inline-block px-3 py-2 mt-2 bg-red-400 text-white font-medium text-xs leading-tight rounded shadow-md hover:bg-red-700 hover:shadow-lg focus:bg-red-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-red-800 active:shadow-lg transition duration-150 ease-in-out"
-        onClick={deleteTask}
-      >
-        삭제
-      </button>
-    </div>
+    <article className="card card-hover">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {taskType === 'sajeon' ? (
+          <span className="badge-brand">{TASK_TYPE_LABELS.sajeon}</span>
+        ) : (
+          <span className="badge-accent">{TASK_TYPE_LABELS.bone}</span>
+        )}
+        <span className="badge-neutral">{userName}</span>
+      </div>
+      <h3 className="notice-title">{taskTitle}</h3>
+      <div className="mt-auto flex pt-1">
+        <button
+          className="btn-ghost btn-sm text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+          onClick={deleteTask}
+        >
+          <TrashIcon className="size-4" aria-hidden="true" />
+          삭제
+        </button>
+      </div>
+    </article>
   )
 }

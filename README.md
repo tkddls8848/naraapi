@@ -10,7 +10,7 @@
 **[서비스 사이트 링크](https://www.naraapi.com)**
 
 **기술스택**
-  - Front-End : Next.js 16 (App Router) + React 19 + Tailwind CSS 3
+  - Front-End : Next.js 16 (App Router) + React 19 + Tailwind CSS 4
   - Back-End : Next.js Route Handlers (`app/api/v1/**`) — 별도 Express 서버 없음
   - Data API : [나라장터 공개 API 활용](https://www.data.go.kr/index.do)
   - Database : MongoDB + Mongoose
@@ -81,7 +81,7 @@ HTTPS 는 nginx 컨테이너가 종단하고 앱 컨테이너(`naraapi:3000`)에
 
 * version 3.0
   - Next.js 16 App Router 전환 (Pages Router · `getServerSideProps` 제거)
-  - React 19 / Tailwind CSS 3 로 업그레이드
+  - React 19 / Tailwind CSS 3 로 업그레이드 (Tailwind 는 이후 3.1 에서 v4 로 올렸다)
   - Express 커스텀 서버(`httpserver.js`, `httpsserver.js`, `customserver/`) 제거,
     모든 API를 Next Route Handlers 로 이전 (URL·응답 형태는 그대로)
   - 나라장터 API 호출 로직을 `lib/nara-api.js` 하나로 통합.
@@ -93,6 +93,19 @@ HTTPS 는 nginx 컨테이너가 종단하고 앱 컨테이너(`naraapi:3000`)에
   - 미완성 마이그레이션 잔재(`frontend_13/`)와 레거시 `pages/` 트리 삭제
   - 도커 이미지를 multi-stage + `output: 'standalone'` 로 재작성 (Node 22 LTS),
     프로덕션에서 dev 서버가 뜨던 문제 수정. 시크릿은 이미지에 굽지 않고 `env_file` 로 주입
+
+* version 3.1
+  - Tailwind CSS 4 로 업그레이드 (`tailwind.config.js` 제거 → `app/globals.css` 안에서
+    `@theme` 로 토큰 선언, PostCSS 플러그인은 `@tailwindcss/postcss` 하나, autoprefixer 제거)
+  - 화면 전면 리디자인: 디자인 토큰 기반 색/타이포, 라이트·다크 모드 자동 대응,
+    모바일 우선 반응형(공고 카드 1→2→3→4열), 고정 헤더와 현재 메뉴 표시
+  - 화면마다 복사돼 있던 버튼·입력 클래스 문자열을 `globals.css` 의 `@utility` 로 통합
+    (`.btn-primary`, `.input`, `.card`, `.badge-*` 등)
+  - 공고 카드를 라벨/값 정의 목록으로 재구성, `최신여부: true` 문자열을 `NEW` 배지로 대체
+  - 라디오 버튼을 세그먼트 컨트롤로, 기관 목록을 칩(chip) 목록으로 변경
+  - `react-datepicker` 팝업을 앱 테마에 맞춰 재스타일 (다크 모드 포함)
+  - 로그인·회원가입·정보수정 폼을 `<form>` 으로 감싸 엔터 제출 지원,
+    비밀번호 입력에 `type="password"` 적용
 
 **추후 개선 필요**
   - 비밀번호 암호화 (현재 평문 저장·비교 — 사용자 결정으로 이번 리팩토링 범위에서 제외)

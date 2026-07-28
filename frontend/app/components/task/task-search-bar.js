@@ -4,15 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import DatePicker from 'react-datepicker'
 import { addDays, format, isBefore, startOfDay, subDays } from 'date-fns'
-import 'react-datepicker/dist/react-datepicker.css'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
 const QUERY_DATE_FORMAT = 'yyyyMMdd0000'
-const RADIO_INPUT_CLASS =
-  'form-check-input rounded-full h-4 w-4 border border-gray-300 checked:bg-blue-400 mt-1 align-top mr-2 cursor-pointer'
-const TEXT_INPUT_CLASS = 'border-solid border-2 border-gray-400 rounded-md'
-const DATE_INPUT_CLASS = 'border-solid border-2 border-gray-400 rounded-md m-2'
-const SEARCH_BUTTON_CLASS =
-  'inline-block px-6 py-2.5 bg-blue-400 text-white font-medium text-xs leading-tight rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out'
+
+const NOTICE_TYPES = [
+  { value: 'sajeon', label: '사전공고' },
+  { value: 'bone', label: '본공고' },
+]
 
 export default function TaskSearchBar() {
   const [radioType, setRadioType] = useState(null)
@@ -58,71 +57,85 @@ export default function TaskSearchBar() {
   }
 
   return (
-    <div>
-      <div className="flex justify-center items-center space-x-4 m-4">
-        <div className="form-check form-check-inline">
-          <input
-            className={RADIO_INPUT_CLASS}
-            type="radio"
-            name="inlineRadioOptions"
-            id="inlineRadioSajeon"
-            value="sajeon"
-            onChange={handleRadioChange}
-          />
-          <label
-            className="form-check-label inline-block text-gray-800"
-            htmlFor="inlineRadioSajeon"
-          >
-            사전공고
+    <div className="toolbar">
+      <div className="toolbar-row">
+        <div className="field">
+          <span className="field-label">공고타입</span>
+          <div className="segmented">
+            {NOTICE_TYPES.map(({ value, label }) => (
+              <label className="segmented-item" key={value}>
+                <input
+                  className="sr-only"
+                  type="radio"
+                  name="inlineRadioOptions"
+                  value={value}
+                  checked={radioType === value}
+                  onChange={handleRadioChange}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="field flex-1 md:min-w-56">
+          <label className="field-label" htmlFor="departName">
+            기관명
           </label>
-        </div>
-        <div className="form-check form-check-inline">
           <input
-            className={RADIO_INPUT_CLASS}
-            type="radio"
-            name="inlineRadioOptions"
-            id="inlineRadioBone"
-            value="bone"
-            onChange={handleRadioChange}
-          />
-          <label className="form-check-label inline-block text-gray-800" htmlFor="inlineRadioBone">
-            본공고
-          </label>
-        </div>
-        <input
-          className={TEXT_INPUT_CLASS}
-          placeholder="부서명"
-          onChange={handleDepartNameChange}
-        />
-        <div className="flex flex-row items-center">
-          <DatePicker
-            selected={startDate}
-            selectsStart
-            startDate={startDate}
-            endDate={endDate}
-            dateFormat="yyyyMMdd"
-            todayButton="TODAY"
-            onChange={(date) => setStartDate(date)}
-            customInput={<input className={DATE_INPUT_CLASS} placeholder="시작일" id="startDate" />}
-          />
-          <DatePicker
-            selected={endDate}
-            selectsEnd
-            startDate={startDate}
-            endDate={endDate}
-            dateFormat="yyyyMMdd"
-            todayButton="TODAY"
-            onChange={(date) => setEndDate(date)}
-            customInput={<input className={DATE_INPUT_CLASS} placeholder="종료일" id="endDate" />}
+            className="input"
+            id="departName"
+            placeholder="예) 국민연금공단"
+            onChange={handleDepartNameChange}
           />
         </div>
-        <div>
-          <button className={SEARCH_BUTTON_CLASS} onClick={handleSearch}>
-            검색
-          </button>
+
+        <div className="field">
+          <span className="field-label">조회기간</span>
+          <div className="flex items-center gap-2">
+            <DatePicker
+              selected={startDate}
+              selectsStart
+              startDate={startDate}
+              endDate={endDate}
+              dateFormat="yyyyMMdd"
+              todayButton="TODAY"
+              onChange={(date) => setStartDate(date)}
+              // react-datepicker 가 customInput 의 id 는 덮어써 버리므로 aria-label 로 이름을 준다.
+              customInput={
+                <input className="input md:w-32" placeholder="시작일" aria-label="조회 시작일" />
+              }
+            />
+            <span className="text-ink-faint">~</span>
+            <DatePicker
+              selected={endDate}
+              selectsEnd
+              startDate={startDate}
+              endDate={endDate}
+              dateFormat="yyyyMMdd"
+              todayButton="TODAY"
+              onChange={(date) => setEndDate(date)}
+              customInput={
+                <input className="input md:w-32" placeholder="종료일" aria-label="조회 종료일" />
+              }
+            />
+          </div>
         </div>
+
+        <button className="btn-primary" onClick={handleSearch}>
+          <MagnifyingGlassIcon className="size-4" aria-hidden="true" />
+          검색
+        </button>
       </div>
-      <div className="mx-16 my-4 text-center text-red-500">{warning}</div>
+
+      {warning ? (
+        <p
+          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-sm font-medium text-rose-700 dark:text-rose-300"
+          role="alert"
+        >
+          {warning}
+        </p>
+      ) : null}
     </div>
   )
 }

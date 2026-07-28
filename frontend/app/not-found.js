@@ -6,17 +6,14 @@ export default function NotFound() {
   const router = useRouter()
 
   return (
-    <div className="flex justify-center">
-      <div className="container max-w-sm mx-auto bg-white rounded-xl shadow-lg m-5 p-5">
-        <div className="flex justify-center py-4 text-lg">요청한 페이지를 찾을 수 없습니다.</div>
-        <div className="flex flex-col space-y-3 place-items-center">
-          <button
-            className="inline-block px-6 py-2.5 w-1/2 bg-green-400 text-white font-medium text-xs leading-tight rounded shadow-md hover:bg-green-700 hover:shadow-lg focus:bg-green-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-lg transition duration-150 ease-in-out"
-            onClick={() => router.push('/')}
-          >
-            돌아가기
-          </button>
-        </div>
+    <div className="flex justify-center py-10">
+      <div className="panel text-center">
+        <p className="text-5xl font-black tracking-tight text-brand-500/40">404</p>
+        <h1 className="panel-title mt-3">요청한 페이지를 찾을 수 없습니다.</h1>
+        <p className="panel-caption">주소가 바뀌었거나 삭제된 페이지일 수 있습니다.</p>
+        <button className="btn-primary btn-block mt-6" onClick={() => router.push('/')}>
+          홈으로 돌아가기
+        </button>
       </div>
     </div>
   )

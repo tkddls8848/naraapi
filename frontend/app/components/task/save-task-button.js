@@ -1,7 +1,6 @@
 'use client'
 
-const SAVE_BUTTON_CLASS =
-  'm-1 inline-block px-3 py-1.5 bg-blue-400 text-white font-medium text-xs leading-tight rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out'
+import { BookmarkIcon } from '@heroicons/react/24/outline'
 
 export default function SaveTaskButton({ userId, taskType, taskTitle }) {
   const saveTask = async () => {
@@ -14,7 +13,8 @@ export default function SaveTaskButton({ userId, taskType, taskTitle }) {
   }
 
   return (
-    <button className={SAVE_BUTTON_CLASS} onClick={saveTask}>
+    <button className="btn-outline btn-sm" onClick={saveTask}>
+      <BookmarkIcon className="size-4" aria-hidden="true" />
       저장
     </button>
   )

@@ -11,8 +11,6 @@ const STATUS_NULL_DATA = 'null data'
 const PW_MATCH_MESSAGE = '확인되었습니다.'
 const PW_MISMATCH_MESSAGE = '비밀번호 입력이 잘못되었습니다.'
 
-const INPUT_CLASS = 'border-solid border-2 border-gray-400 rounded-md'
-
 export default function Join() {
   const [userId, setUserId] = useState('')
   const [userPw, setUserPw] = useState('')
@@ -21,9 +19,11 @@ export default function Join() {
   const [userEmail, setUserEmail] = useState('')
   const router = useRouter()
 
-  const pwAlarm = userPw === userRePw ? PW_MATCH_MESSAGE : PW_MISMATCH_MESSAGE
+  const pwInputCheck = userPw === userRePw
+  const pwAlarm = pwInputCheck ? PW_MATCH_MESSAGE : PW_MISMATCH_MESSAGE
 
-  const joinSubmit = async () => {
+  const joinSubmit = async (e) => {
+    e.preventDefault()
     // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖 — 비밀번호는 기존과 동일하게 평문 전송한다.
     const res = await fetch('/api/v1/login', {
       method: 'POST',
@@ -44,45 +44,73 @@ export default function Join() {
   }
 
   return (
-    <div className="flex justify-center">
-      <div className="container max-w-sm mx-auto bg-white border-2 rounded-xl shadow-lg m-5 p-5">
-        <div className="flex justify-center py-4 text-lg">회원가입</div>
-        <div className="flex flex-col space-y-3 justify-items-center">
-          <input
-            className={INPUT_CLASS}
-            id="id"
-            placeholder="Enter Your ID"
-            onChange={(e) => setUserId(e.target.value)}
-          />
-          <input
-            className={INPUT_CLASS}
-            id="pw"
-            placeholder="Enter Your Password"
-            onChange={(e) => setUserPw(e.target.value)}
-          />
-          <input
-            className={INPUT_CLASS}
-            id="repw"
-            placeholder="Re Enter New Password"
-            onChange={(e) => setUserRePw(e.target.value)}
-          />
-          <div className="text-xs text-red-500" id="pwAlarm">
-            {pwAlarm}
+    <div className="flex justify-center py-6 sm:py-10">
+      <form className="panel" onSubmit={joinSubmit}>
+        <h1 className="panel-title">회원가입</h1>
+        <p className="panel-caption">공고 저장 기능을 쓰려면 계정이 필요합니다.</p>
+        <div className="mt-7 flex flex-col gap-4">
+          <div className="field">
+            <label className="field-label" htmlFor="id">
+              아이디
+            </label>
+            <input
+              className="input"
+              id="id"
+              autoComplete="username"
+              placeholder="Enter Your ID"
+              onChange={(e) => setUserId(e.target.value)}
+            />
           </div>
-          <input
-            className={INPUT_CLASS}
-            id="email"
-            placeholder="Enter Your E-Mail"
-            onChange={(e) => setUserEmail(e.target.value)}
-          />
-          <button
-            className="inline-block px-6 py-2.5 bg-green-400 text-white font-medium text-xs leading-tight rounded shadow-md hover:bg-green-700 hover:shadow-lg focus:bg-green-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-lg transition duration-150 ease-in-out"
-            onClick={joinSubmit}
-          >
+          <div className="field">
+            <label className="field-label" htmlFor="pw">
+              비밀번호
+            </label>
+            <input
+              className="input"
+              id="pw"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Enter Your Password"
+              onChange={(e) => setUserPw(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="repw">
+              비밀번호 확인
+            </label>
+            <input
+              className="input"
+              id="repw"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Re Enter New Password"
+              onChange={(e) => setUserRePw(e.target.value)}
+            />
+            <div className={pwInputCheck ? 'form-hint-ok' : 'form-hint-error'} id="pwAlarm">
+              {pwAlarm}
+            </div>
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="email">
+              이메일
+            </label>
+            <input
+              className="input"
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="Enter Your E-Mail"
+              onChange={(e) => setUserEmail(e.target.value)}
+            />
+          </div>
+          <button className="btn-success btn-block mt-1" type="submit">
             회원가입
           </button>
+          <button className="btn-ghost btn-block" type="button" onClick={() => router.push('/')}>
+            돌아가기
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   )
 }

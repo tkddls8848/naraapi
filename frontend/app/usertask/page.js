@@ -31,10 +31,19 @@ export default async function UserTaskPage() {
 
   return (
     <div>
+      <div className="page-head">
+        <h1 className="page-title">저장된 공고</h1>
+        <p className="page-subtitle">
+          {userId}님이 저장한 공고 {usertasks.length}건
+        </p>
+      </div>
       {usertasks.length === 0 ? (
-        <NoData />
+        <NoData
+          message="저장한 공고가 없습니다."
+          hint="검색 화면에서 공고 카드의 저장 버튼을 누르면 여기에 모입니다."
+        />
       ) : (
-        <div className="grid grid-cols-2 grid-flow-row gap-x-2">
+        <div className="notice-grid">
           {usertasks.map((usertask) => (
             <UserTasks usertask={usertask} key={usertask[3]} />
           ))}

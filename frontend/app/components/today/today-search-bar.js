@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TrashIcon } from '@heroicons/react/24/solid'
+import { MagnifyingGlassIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 // FIXME: 공고타입을 고르는 라디오가 마크업에 없어서 추가되는 기관은 항상 '본공고'로 들어간다.
 // 기본 두 기관만 '사전공고'다. 기존 동작 그대로 보존한다.
@@ -11,12 +11,6 @@ const DEFAULT_DEPARTS = [
   { kind: 's', name: '건강보험심사평가원' },
 ]
 const ADDED_DEPART_KIND = 'b'
-
-const TEXT_INPUT_CLASS = 'border-solid border-2 border-gray-400 rounded-md'
-const ADD_BUTTON_CLASS =
-  'inline-block px-6 py-2.5 bg-green-400 text-white font-medium text-xs leading-tight rounded shadow-md hover:bg-green-700 hover:shadow-lg focus:bg-green-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-lg transition duration-150 ease-in-out'
-const SEARCH_BUTTON_CLASS =
-  'inline-block px-6 py-2.5 bg-blue-400 text-white font-medium text-xs leading-tight rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out'
 
 export default function TodaySearchBar() {
   const [departName, setDepartName] = useState('')
@@ -50,36 +44,52 @@ export default function TodaySearchBar() {
   }
 
   return (
-    <div>
-      <div className="flex justify-center items-center space-x-6 m-4">
-        <input
-          className={TEXT_INPUT_CLASS}
-          placeholder="부서명"
-          onChange={handleDepartNameChange}
-        />
-        <div className="flex flex-row items-center space-x-2 ">
-          <button className={ADD_BUTTON_CLASS} onClick={addDepart}>
+    <div className="toolbar">
+      <div className="toolbar-row">
+        <div className="field flex-1 md:min-w-56">
+          <label className="field-label" htmlFor="todayDepartName">
+            기관명 추가
+          </label>
+          <input
+            className="input"
+            id="todayDepartName"
+            placeholder="예) 국민연금공단"
+            onChange={handleDepartNameChange}
+            onKeyDown={(e) => {
+              // 엔터로도 목록에 담을 수 있게 한다.
+              if (e.key === 'Enter') {
+                addDepart()
+              }
+            }}
+          />
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-outline" onClick={addDepart}>
+            <PlusIcon className="size-4" aria-hidden="true" />
             추가
           </button>
-          <button className={SEARCH_BUTTON_CLASS} onClick={searchDeparts}>
+          <button className="btn-primary" onClick={searchDeparts}>
+            <MagnifyingGlassIcon className="size-4" aria-hidden="true" />
             검색
           </button>
         </div>
       </div>
-      <div className="flex flex-row items-center justify-center">
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
+        <span className="field-label">선택한 기관 {departs.length}곳</span>
         {departs.map((depart) => (
-          <div
-            className="flex flex-row rounded-md m-2 p-1 bg-red-400 text-white"
-            key={`${depart.kind}${depart.name}`}
-          >
-            <div className="p-1 text-xs font-semibold">{depart.name}</div>
-            <button className="p-1" onClick={() => deleteDepart(depart)}>
-              <TrashIcon className="flex justify-center h-4 w-4" />
+          <span className="chip" key={`${depart.kind}${depart.name}`}>
+            {depart.name}
+            <button
+              className="chip-remove"
+              aria-label={`${depart.name} 제외`}
+              onClick={() => deleteDepart(depart)}
+            >
+              <XMarkIcon className="size-3.5" aria-hidden="true" />
             </button>
-          </div>
+          </span>
         ))}
       </div>
-      <div className="mx-16 my-4 text-center text-red-500" />
     </div>
   )
 }

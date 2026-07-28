@@ -27,13 +27,15 @@ export default async function TaskSajeonPage({ params, searchParams }) {
 
   return (
     <div>
+      <div className="page-head">
+        <h1 className="page-title">{departname} 사전공고</h1>
+        <p className="page-subtitle">검색 결과 {tasks.length}건</p>
+      </div>
       <TaskSearchBar />
       {tasks.length > 0 ? (
-        <div className="h-full w-full p-4 grid gap-2 grid-cols-4">
+        <div className="notice-grid">
           {tasks.map((task, index) => (
-            <div key={noticeKey(task, index)}>
-              <TaskSajeon task={task} user={user} />
-            </div>
+            <TaskSajeon key={noticeKey(task, index)} task={task} user={user} />
           ))}
         </div>
       ) : (

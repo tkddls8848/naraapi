@@ -1,3 +1,421 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * Tailwind v4 는 JS 설정 파일 대신 CSS 안에서 테마를 선언한다(tailwind.config.js 제거).
+ * content 스캔도 자동이라 경로를 나열하지 않는다.
+ */
+@import 'tailwindcss';
+/* 데이트피커 기본 CSS 를 여기서 먼저 불러야 아래 오버라이드가 순서상 이긴다. */
+@import 'react-datepicker/dist/react-datepicker.css';
+
+/* ---------------------------------------------------------------------------
+ * 1. 디자인 토큰
+ * ------------------------------------------------------------------------- */
+@theme {
+  --font-sans:
+    'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui,
+    -apple-system, 'Segoe UI', Roboto, 'Malgun Gothic', sans-serif;
+
+  /* 브랜드 색: 조달 공고라는 성격에 맞춰 차분한 블루 계열로 잡았다. */
+  --color-brand-50: oklch(0.97 0.014 254);
+  --color-brand-100: oklch(0.94 0.03 254);
+  --color-brand-200: oklch(0.89 0.055 254);
+  --color-brand-300: oklch(0.81 0.095 254);
+  --color-brand-400: oklch(0.71 0.14 256);
+  --color-brand-500: oklch(0.62 0.18 258);
+  --color-brand-600: oklch(0.55 0.2 259);
+  --color-brand-700: oklch(0.48 0.18 260);
+  --color-brand-800: oklch(0.41 0.15 261);
+  --color-brand-900: oklch(0.36 0.12 262);
+  --color-brand-950: oklch(0.26 0.09 264);
+
+  --radius-card: 1rem;
+
+  --shadow-card: 0 1px 2px oklch(0.2 0.03 260 / 0.06), 0 8px 24px -12px oklch(0.2 0.03 260 / 0.12);
+  --shadow-lift: 0 2px 4px oklch(0.2 0.03 260 / 0.06), 0 18px 40px -18px oklch(0.2 0.03 260 / 0.28);
+
+  --animate-rise: rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-progress: progress 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* 라우트 전환용 무한 진행바. 길이를 모르는 작업이라 좌우로 흐르게만 한다. */
+  @keyframes progress {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
+    }
+  }
+}
+
+/*
+ * 다크 모드까지 한 벌로 굴리기 위해 표면/글자색은 일반 커스텀 프로퍼티로 두고
+ * @theme inline 으로 유틸리티에 연결한다. 이러면 bg-surface 같은 클래스가
+ * 라이트/다크에서 자동으로 값을 바꾼다.
+ */
+:root {
+  --app-canvas: oklch(0.985 0.003 255);
+  --app-surface: oklch(1 0 0);
+  --app-surface-soft: oklch(0.972 0.005 255);
+  --app-line: oklch(0.915 0.007 255);
+  --app-ink: oklch(0.26 0.022 260);
+  --app-ink-soft: oklch(0.5 0.018 260);
+  --app-ink-faint: oklch(0.63 0.014 260);
+  --app-glow-a: oklch(0.62 0.18 258 / 0.09);
+  --app-glow-b: oklch(0.7 0.13 200 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-canvas: oklch(0.19 0.016 262);
+    --app-surface: oklch(0.238 0.019 262);
+    --app-surface-soft: oklch(0.283 0.021 262);
+    --app-line: oklch(0.345 0.022 262);
+    --app-ink: oklch(0.965 0.004 260);
+    --app-ink-soft: oklch(0.78 0.014 260);
+    --app-ink-faint: oklch(0.645 0.017 260);
+    --app-glow-a: oklch(0.62 0.18 258 / 0.16);
+    --app-glow-b: oklch(0.7 0.13 200 / 0.12);
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--app-canvas);
+  --color-surface: var(--app-surface);
+  --color-surface-soft: var(--app-surface-soft);
+  --color-line: var(--app-line);
+  --color-ink: var(--app-ink);
+  --color-ink-soft: var(--app-ink-soft);
+  --color-ink-faint: var(--app-ink-faint);
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. 기본 레이어
+ * ------------------------------------------------------------------------- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply flex min-h-dvh flex-col bg-canvas font-sans text-ink antialiased;
+    background-image:
+      radial-gradient(60rem 32rem at 12% -8%, var(--app-glow-a), transparent 65%),
+      radial-gradient(52rem 30rem at 92% 0%, var(--app-glow-b), transparent 60%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-brand-500/25;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. 반복되는 UI 조각
+ *    같은 버튼/입력 클래스 문자열이 화면마다 복사돼 있던 걸 여기로 모았다.
+ * ------------------------------------------------------------------------- */
+/* 레이아웃 */
+@utility app-main {
+  @apply mx-auto w-full max-w-7xl flex-1 px-4 pt-6 pb-14 sm:px-6 lg:px-8;
+}
+
+@utility page-head {
+  @apply mb-6 flex flex-col gap-1;
+}
+
+@utility page-title {
+  @apply text-xl font-bold tracking-tight sm:text-2xl;
+}
+
+@utility page-subtitle {
+  @apply text-sm text-ink-soft;
+}
+
+/* 카드 / 패널 */
+@utility surface-card {
+  @apply rounded-2xl border border-line bg-surface shadow-card;
+}
+
+@utility card {
+  @apply surface-card flex h-full flex-col gap-3 p-5 transition duration-200 ease-out;
+}
+
+@utility card-hover {
+  @apply hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift dark:hover:border-brand-500/60;
+}
+
+@utility panel {
+  @apply surface-card animate-rise w-full max-w-md rounded-3xl p-7 sm:p-8;
+}
+
+@utility panel-title {
+  @apply text-center text-lg font-bold tracking-tight;
+}
+
+@utility panel-caption {
+  @apply mt-1 text-center text-sm text-ink-soft;
+}
+
+/* 툴바(검색 영역) */
+@utility toolbar {
+  @apply surface-card mb-6 flex flex-col gap-4 p-4 sm:p-5;
+}
+
+@utility toolbar-row {
+  @apply flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end;
+}
+
+@utility field {
+  @apply flex min-w-0 flex-col gap-1.5;
+}
+
+@utility field-label {
+  @apply text-[0.7rem] font-semibold tracking-wide text-ink-faint uppercase;
+}
+
+/* 입력 */
+@utility input {
+  @apply w-full rounded-xl border border-line bg-surface-soft px-3.5 py-2.5 text-sm text-ink outline-none transition duration-150 placeholder:text-ink-faint focus:border-brand-400 focus:bg-surface focus:ring-4 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+/* 라디오를 칩 형태로 바꿔 터치 영역을 넓혔다. */
+@utility segmented {
+  @apply inline-flex gap-1 rounded-xl border border-line bg-surface-soft p-1;
+}
+
+@utility segmented-item {
+  @apply cursor-pointer rounded-lg px-3.5 py-2 text-sm font-medium text-ink-soft transition select-none hover:text-ink has-checked:bg-brand-600 has-checked:text-white has-checked:shadow-sm has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-brand-500;
+}
+
+/* 버튼 */
+@utility btn {
+  @apply inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition duration-150 ease-out select-none active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@utility btn-sm {
+  @apply rounded-lg px-3 py-1.5 text-xs;
+}
+
+@utility btn-block {
+  @apply w-full;
+}
+
+@utility btn-primary {
+  @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800;
+}
+
+@utility btn-success {
+  @apply btn bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800;
+}
+
+@utility btn-danger {
+  @apply btn bg-rose-600 text-white shadow-sm hover:bg-rose-700 active:bg-rose-800;
+}
+
+@utility btn-outline {
+  @apply btn border border-line bg-surface text-ink hover:border-brand-300 hover:bg-surface-soft hover:text-brand-700 dark:hover:text-brand-300;
+}
+
+@utility btn-ghost {
+  @apply btn bg-transparent text-ink-soft hover:bg-surface-soft hover:text-ink;
+}
+
+/* 헤더 내비게이션 */
+@utility nav-pill {
+  @apply cursor-pointer rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-ink-soft transition hover:bg-surface-soft hover:text-ink;
+}
+
+@utility nav-pill-active {
+  @apply bg-brand-500/12 text-brand-700 hover:bg-brand-500/15 hover:text-brand-700 dark:text-brand-200 dark:hover:text-brand-200;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 배지 / 칩 */
+@utility badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.68rem] font-semibold tracking-wide ring-1 ring-inset;
+}
+
+@utility badge-brand {
+  @apply badge bg-brand-500/12 text-brand-700 ring-brand-500/25 dark:text-brand-200;
+}
+
+@utility badge-neutral {
+  @apply badge bg-surface-soft text-ink-faint ring-line;
+}
+
+@utility badge-accent {
+  @apply badge bg-violet-500/12 text-violet-700 ring-violet-500/25 dark:text-violet-300;
+}
+
+@utility badge-new {
+  @apply badge bg-emerald-500/12 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300;
+}
+
+@utility chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-soft py-1 pr-1 pl-3 text-xs font-semibold text-ink;
+}
+
+@utility chip-remove {
+  @apply cursor-pointer rounded-full p-1 text-ink-faint transition hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-300;
+}
+
+/* 공고 카드 내부 */
+@utility notice-grid {
+  @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4;
+}
+
+@utility notice-title {
+  @apply text-base leading-snug font-semibold text-balance;
+}
+
+@utility notice-meta {
+  @apply flex flex-col gap-1.5 text-sm;
+}
+
+@utility notice-meta-row {
+  @apply flex gap-2;
+}
+
+@utility notice-meta-label {
+  @apply w-20 shrink-0 text-xs font-medium text-ink-faint;
+}
+
+@utility notice-meta-value {
+  @apply min-w-0 flex-1 break-words text-ink-soft;
+}
+
+/* 기타 */
+@utility link {
+  @apply font-medium text-brand-600 underline-offset-4 transition hover:underline dark:text-brand-300;
+}
+
+@utility empty-state {
+  @apply surface-card flex flex-col items-center gap-2 px-6 py-16 text-center;
+}
+
+@utility form-hint {
+  @apply text-xs;
+}
+
+@utility form-hint-ok {
+  @apply form-hint text-emerald-600 dark:text-emerald-400;
+}
+
+@utility form-hint-error {
+  @apply form-hint text-rose-600 dark:text-rose-400;
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. react-datepicker 를 테마에 맞춘다. 패키지 CSS 가 색을 직접 박아 두기 때문에
+ *    다크 모드에서 흰 팝업이 튀지 않도록 필요한 선택자만 덮어쓴다.
+ * ------------------------------------------------------------------------- */
+.react-datepicker-wrapper {
+  display: block;
+  width: 100%;
+}
+
+.react-datepicker-popper {
+  z-index: 40;
+}
+
+.react-datepicker {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  background-color: var(--app-surface);
+  color: var(--app-ink);
+  border: 1px solid var(--app-line);
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+}
+
+.react-datepicker__header {
+  background-color: var(--app-surface-soft);
+  border-bottom: 1px solid var(--app-line);
+  padding-top: 10px;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header,
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  color: var(--app-ink);
+}
+
+.react-datepicker__day-name {
+  color: var(--app-ink-faint);
+  font-weight: 600;
+}
+
+.react-datepicker__day:not([aria-disabled='true']):hover,
+.react-datepicker__month-text:not([aria-disabled='true']):hover,
+.react-datepicker__quarter-text:not([aria-disabled='true']):hover,
+.react-datepicker__year-text:not([aria-disabled='true']):hover {
+  background-color: var(--app-surface-soft);
+  border-radius: 0.5rem;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--in-range,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--color-brand-600);
+  color: #fff;
+  border-radius: 0.5rem;
+}
+
+.react-datepicker__day--selected:not([aria-disabled='true']):hover,
+.react-datepicker__day--in-range:not([aria-disabled='true']):hover,
+.react-datepicker__day--keyboard-selected:not([aria-disabled='true']):hover {
+  background-color: var(--color-brand-700);
+  color: #fff;
+}
+
+.react-datepicker__day--outside-month,
+.react-datepicker__day--disabled {
+  color: var(--app-ink-faint);
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: var(--app-ink-faint);
+}
+
+.react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+  border-color: var(--color-brand-500);
+}
+
+.react-datepicker__today-button {
+  background-color: var(--app-surface-soft);
+  border-top: 1px solid var(--app-line);
+  color: var(--color-brand-600);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.react-datepicker__triangle {
+  display: none;
+}

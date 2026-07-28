@@ -33,25 +33,25 @@ export default async function TodayTaskShowPage({ searchParams }) {
 
   return (
     <div>
-      <TodaySearchBar />
-      <div>
-        {hasData ? (
-          <div className="h-full w-full p-4 grid gap-2 grid-cols-4">
-            {sajeonData.map((sajeon, index) => (
-              <div key={noticeKey(sajeon, `sajeon-${index}`)}>
-                <TodaySajeon task={sajeon} />
-              </div>
-            ))}
-            {boneData.map((bone, index) => (
-              <div key={noticeKey(bone, `bone-${index}`)}>
-                <TodayBone task={bone} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <NoData />
-        )}
+      <div className="page-head">
+        <h1 className="page-title">오늘의 공고</h1>
+        <p className="page-subtitle">
+          기관 {departList.length}곳 · 사전공고 {sajeonData.length}건 · 본공고 {boneData.length}건
+        </p>
       </div>
+      <TodaySearchBar />
+      {hasData ? (
+        <div className="notice-grid">
+          {sajeonData.map((sajeon, index) => (
+            <TodaySajeon key={noticeKey(sajeon, `sajeon-${index}`)} task={sajeon} />
+          ))}
+          {boneData.map((bone, index) => (
+            <TodayBone key={noticeKey(bone, `bone-${index}`)} task={bone} />
+          ))}
+        </div>
+      ) : (
+        <NoData />
+      )}
     </div>
   )
 }

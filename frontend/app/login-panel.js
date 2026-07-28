@@ -9,23 +9,14 @@ const GUEST = 'Guest'
 const STATUS_WRONG_PASSWORD = 'wrong password'
 const STATUS_NO_REGITERED = 'not registered user'
 
-const BUTTON_BASE =
-  'inline-block px-6 py-2.5 text-white font-medium text-xs leading-tight rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out'
-const BUTTON_LOGIN = `${BUTTON_BASE} bg-blue-400 hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-800`
-const BUTTON_JOIN = `${BUTTON_BASE} uppercase bg-green-500 hover:bg-green-600 focus:bg-green-600 active:bg-green-700`
-const BUTTON_LOGOUT = `${BUTTON_BASE} bg-green-400 hover:bg-green-700 focus:bg-green-700 active:bg-green-800`
-const BUTTON_MODIFY = `${BUTTON_BASE} bg-gray-400 hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-800`
-const BUTTON_DELETE = `${BUTTON_BASE} bg-red-400 hover:bg-red-700 focus:bg-red-700 active:bg-red-800`
-
-const INPUT_CLASS = 'border-solid border-2 border-gray-400 rounded-md'
-
 export default function LoginPanel({ loginState }) {
   const [userId, setUserId] = useState('')
   const [userPw, setUserPw] = useState('')
   const router = useRouter()
   const isGuest = loginState === GUEST
 
-  const loginSubmit = async () => {
+  const loginSubmit = async (e) => {
+    e.preventDefault()
     // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖 — 비밀번호는 기존과 동일하게 평문 전송한다.
     const res = await fetch('/api/v1/login/signin', {
       method: 'POST',
@@ -52,58 +43,79 @@ export default function LoginPanel({ loginState }) {
   }
 
   return (
-    <div className="flex justify-center">
-      <div className="container max-w-sm mx-auto bg-white border-2 rounded-xl shadow-lg m-5 p-5">
-        <div className="flex flex-col space-y-2 m-4">
-          <div className="flex justify-center pb-1 text-lg">조달청 검색기 NARA-P입니다.</div>
-          <div className="flex justify-center pb-1 text-lg">로그인 페이지</div>
-          {isGuest ? (
-            <div className="flex justify-center py-1 text-sm">로그인 되어 있지 않습니다.</div>
-          ) : (
-            <div className="flex justify-center py-1 text-sm">{loginState}님 반갑습니다.</div>
-          )}
-          {isGuest ? (
-            <div className="flex flex-col space-y-2">
+    <div className="flex justify-center py-6 sm:py-10">
+      <div className="panel">
+        <div className="flex flex-col items-center gap-3">
+          <span className="grid size-12 place-items-center rounded-2xl bg-linear-to-br from-brand-500 to-brand-700 text-lg font-black text-white shadow-sm">
+            N
+          </span>
+          <div>
+            <h1 className="panel-title">조달청 검색기 NARA-P</h1>
+            <p className="panel-caption">
+              {isGuest ? '로그인 후 공고를 검색할 수 있습니다.' : `${loginState}님 반갑습니다.`}
+            </p>
+          </div>
+        </div>
+
+        {isGuest ? (
+          <form className="mt-7 flex flex-col gap-4" onSubmit={loginSubmit}>
+            <div className="field">
+              <label className="field-label" htmlFor="id">
+                아이디
+              </label>
               <input
-                className={INPUT_CLASS}
+                className="input"
                 id="id"
+                autoComplete="username"
                 defaultValue={userId}
                 placeholder="ID"
                 onChange={(e) => setUserId(e.target.value)}
               />
+            </div>
+            <div className="field">
+              <label className="field-label" htmlFor="pw">
+                비밀번호
+              </label>
               <input
-                className={INPUT_CLASS}
+                className="input"
                 id="pw"
+                type="password"
+                autoComplete="current-password"
                 defaultValue={userPw}
                 placeholder="PW"
                 onChange={(e) => setUserPw(e.target.value)}
               />
-              <button className={BUTTON_LOGIN} onClick={loginSubmit}>
-                로그인
-              </button>
-              <button className={BUTTON_JOIN} onClick={() => router.push('/userlogin/join')}>
-                회원가입
-              </button>
             </div>
-          ) : (
-            <div></div>
-          )}
-          {isGuest ? (
-            <div></div>
-          ) : (
-            <div className="flex flex-col space-y-2">
-              <button className={BUTTON_LOGOUT} onClick={logoutSubmit}>
-                로그아웃
-              </button>
-              <button className={BUTTON_MODIFY} onClick={() => router.push('/userlogin/modify')}>
-                정보수정
-              </button>
-              <button className={BUTTON_DELETE} onClick={() => router.push('/userlogin/delete')}>
-                회원탈퇴
-              </button>
-            </div>
-          )}
-        </div>
+            <button className="btn-primary btn-block mt-1" type="submit">
+              로그인
+            </button>
+            <button
+              className="btn-outline btn-block"
+              type="button"
+              onClick={() => router.push('/userlogin/join')}
+            >
+              회원가입
+            </button>
+          </form>
+        ) : (
+          <div className="mt-7 flex flex-col gap-3">
+            <button className="btn-primary btn-block" onClick={logoutSubmit}>
+              로그아웃
+            </button>
+            <button
+              className="btn-outline btn-block"
+              onClick={() => router.push('/userlogin/modify')}
+            >
+              정보수정
+            </button>
+            <button
+              className="btn-ghost btn-block text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+              onClick={() => router.push('/userlogin/delete')}
+            >
+              회원탈퇴
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
