@@ -1,4 +1,3 @@
-version: '3'
 services:
 
   certbot:
@@ -12,13 +11,15 @@ services:
 
   nginx:
     container_name: my-nginx
-    build: ./nginx
+    build:
+      context: ./nginx
+      dockerfile: dockerfile
     ports:
       - "80:80"
       - "443:443"
     depends_on:
       - certbot
-    volumes:    
+    volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/conf:/var/www/certbot
     restart: on-failure
@@ -26,12 +27,15 @@ services:
 
   naraapi:
     container_name: my-naraapi
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
     ports:
       - "3000:3000"
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/conf:/var/www/certbot
+    # 시크릿은 이미지에 굽지 않고 기동 시 주입한다.
+    # 배포 전에 frontend/config_files/.env.example 을 복사해 .env.production 을 만들어야 한다.
+    env_file:
+      - ./frontend/config_files/.env.production
     depends_on:
       - certbot
       - nginx

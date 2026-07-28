@@ -1,25 +1,64 @@
 # 나라장터 API기반 사업 검색 사이트 NARA-P
 
->MERN(Mongo, Express, React, NodeJS) 스택으로 구현한 나라장터 사전공고 및 본공고 검색사이트입니다.
+>나라장터 사전공고 및 본공고 검색사이트입니다.
+>Next.js App Router 단일 애플리케이션으로 프론트엔드와 API를 함께 서비스합니다.
 
 - 1차 작업기간 : 22.01.04 ~ 22.01.10 (기능 구현 진행)
 - 2차 작업기간 : 22.02.05 ~ 22.02.28 (상세 기능 및 배포 환경 설정)
+- 3차 작업기간 : 26.07 (Next.js 16 App Router 전면 리팩토링)
 
 **[서비스 사이트 링크](https://www.naraapi.com)**
 
 **기술스택**
-  - Front-End : React + NextJS
-  - Back-End : NodeJS + Express
+  - Front-End : Next.js 16 (App Router) + React 19 + Tailwind CSS 3
+  - Back-End : Next.js Route Handlers (`app/api/v1/**`) — 별도 Express 서버 없음
   - Data API : [나라장터 공개 API 활용](https://www.data.go.kr/index.do)
-  - Database : Mongoose
-  - DevOps : AWS, docker
+  - Database : MongoDB + Mongoose
+  - DevOps : AWS, docker / docker-compose, nginx(HTTPS 종단) + certbot
 
 **URL**
-  - / : 로그인 창
-  - /userlogin : 로그인 관리
-  - /task/narasearch : 검색 홈
-  - /usertask/usertask : 로그인 유저의 공고 저장 기록 확인
-  - /todaytask/todaytask : 오늘 여러 기관의 공고 확인
+  - `/` : 로그인 창
+  - `/userlogin/join` : 회원가입
+  - `/userlogin/modify` : 회원정보 수정
+  - `/userlogin/delete` : 회원탈퇴
+  - `/task` : 검색 홈
+  - `/task/sajeon/[departname]` : 기관별 사전공고 검색 결과
+  - `/task/bone/[departname]` : 기관별 본공고 검색 결과
+  - `/todaytask` : 여러 기관 선택 화면
+  - `/todaytask/show` : 선택한 기관들의 오늘 공고
+  - `/usertask` : 로그인 유저의 공고 저장 기록 확인
+  - `/list/[pageNum]` : 수요기관 목록
+
+**API** (모두 `/api/v1` 하위, 기존 Express 라우트와 경로·응답 형태 동일)
+  - `GET|POST /api/v1/task/sajeon`, `/api/v1/task/sajeon/[departname]`
+  - `GET|POST /api/v1/task/bone`, `/api/v1/task/bone/[departname]`
+  - `POST /api/v1/usertask`, `GET|DELETE /api/v1/usertask/[userId]`
+  - `POST|PATCH /api/v1/login`, `POST /api/v1/login/signin`, `GET|DELETE /api/v1/login/[userId]`
+  - `GET /api/v1/logic`, `GET /api/v1/list`
+
+**실행 방법**
+
+로컬 개발:
+```
+cd frontend
+npm install
+npm run dev
+```
+로컬에서는 `frontend/.env.local` 에 환경변수를 넣으면 Next 가 자동으로 읽는다.
+
+배포:
+```
+# 배포 전에 반드시 환경변수 파일을 만들어야 한다 (실제 값은 커밋 대상이 아니다)
+cp frontend/config_files/.env.example frontend/config_files/.env.production
+# 값을 채운 뒤
+docker-compose up -d --build
+```
+`docker-compose.yml` 의 `naraapi` 서비스가 `env_file` 로 `.env.production` 을 주입한다.
+필요한 키 목록과 주의사항(특히 `SERVICE_KEY` 는 `key=value` 형태 문자열 통째로 넣어야 한다)은
+`frontend/config_files/.env.example` 의 주석 참고.
+
+HTTPS 는 nginx 컨테이너가 종단하고 앱 컨테이너(`naraapi:3000`)에는 평문 http 로 프록시한다.
+인증서 발급/갱신은 `init-letsencrypt.sh` 와 certbot 컨테이너가 담당한다.
 
 **버전정보**
 * version 1.0
@@ -40,14 +79,35 @@
 * version 2.2
   - AWS 실행 환경 개선 및 docker 구현
 
+* version 3.0
+  - Next.js 16 App Router 전환 (Pages Router · `getServerSideProps` 제거)
+  - React 19 / Tailwind CSS 3 로 업그레이드
+  - Express 커스텀 서버(`httpserver.js`, `httpsserver.js`, `customserver/`) 제거,
+    모든 API를 Next Route Handlers 로 이전 (URL·응답 형태는 그대로)
+  - 나라장터 API 호출 로직을 `lib/nara-api.js` 하나로 통합.
+    `Promise.allSettled` 로 조달청 일부 요청 거절 시에도 부분 결과를 반환
+  - 본공고 POST 조회에서 누락돼 있던 물품(Thng) 공고 추가, 건설(Cnstwk) 중복 제거
+  - `axios` → `fetch`, `moment` → `date-fns`, heroicons v2 로 정리.
+    `express`/`cookie-parser`/`cors`/`dotenv`/`mongodb`/`typescript` 등 미사용 의존성 제거
+  - ESLint 9 flat config + Prettier 도입, 파일명 kebab-case 통일
+  - 미완성 마이그레이션 잔재(`frontend_13/`)와 레거시 `pages/` 트리 삭제
+  - 도커 이미지를 multi-stage + `output: 'standalone'` 로 재작성 (Node 22 LTS),
+    프로덕션에서 dev 서버가 뜨던 문제 수정. 시크릿은 이미지에 굽지 않고 `env_file` 로 주입
+
 **추후 개선 필요**
-  - 비밀번호 암호화, 로그인 검증
+  - 비밀번호 암호화 (현재 평문 저장·비교 — 사용자 결정으로 이번 리팩토링 범위에서 제외)
+  - JWT 검증 (현재 쿠키 존재 여부만 확인 — 동일 사유로 범위 밖)
   - 한글로그인 방지
   - 공고 검색 속도 개선(데이터 아카이빙)
   - 기관명 입력 시 기관 목록 표시 기능
-  - PM2
-  - 조달청 쪽 특정 리퀘스트 수행 시 거절에 대응 필요
-  - 오늘의 공고 minor fix
+  - PM2 등 프로세스 관리 (현재는 docker `restart: on-failure` 에 의존)
+  - `/todaytask/show` 에서 사전공고가 0건이면 본공고가 있어도 "데이터 없음"으로 표시된다
+    (레거시 동작 그대로 보존 — `app/todaytask/show/page.js` 의 `FIXME` 참고)
+  - `/todaytask` 에서 사용자가 추가한 기관이 항상 본공고(`'b'`)로 태깅된다
+    (레거시에 라디오 마크업이 없어 그대로 보존 — `app/components/today/today-search-bar.js` 의 `FIXME` 참고)
+  - `GET /api/v1/list` 가 쿼리 파라미터를 무시하고 특정 기관명으로만 조회한다
+    (원작자 의도 불명 — `lib/nara-api.js` 의 `FIXME` 참고)
+  - `/list/[pageNum]` 의 `pageNum` 세그먼트가 실제로 사용되지 않는다
 
   **추후 하고 싶은 것**
   - 앱 지원
