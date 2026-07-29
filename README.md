@@ -118,6 +118,27 @@ docker compose exec -T mongo mongorestore \
 복구 후 `userlists`, `usertasklists` 두 컬렉션이 들어왔는지 확인한다. 인덱스는 Mongoose 가
 기동 시 스키마 선언대로 만든다(`userlists.user_id` unique).
 
+*인덱스 확인* — 인덱스는 Mongoose 가 스키마 선언대로 기동 시 만든다(`autoIndex` 기본값).
+`usertasklists` 는 `user_id`(목록 조회·회원탈퇴 정리)와 `content_number`(공고 1건 삭제),
+`userlists` 는 `user_id`(unique)에 걸린다. 실제로 생성됐는지 확인:
+```
+docker compose exec mongo mongosh -u "$MONGO_INITDB_ROOT_USERNAME" -p \
+  --authenticationDatabase admin naraapi --quiet \
+  --eval 'db.usertasklists.getIndexes().concat(db.userlists.getIndexes())'
+```
+`content_number` 는 삭제 키라서 unique 가 맞지만, 기존 데이터에 중복이 있으면 unique 인덱스
+생성이 실패하므로 기본값은 non-unique 로 뒀다. 아래로 중복이 0건임을 확인한 뒤 올리면 된다.
+```
+# 중복 확인 (결과가 비어 있어야 한다)
+docker compose exec mongo mongosh ... --quiet --eval '
+  db.usertasklists.aggregate([
+    { $group: { _id: "$content_number", n: { $sum: 1 } } },
+    { $match: { n: { $gt: 1 } } }
+  ]).toArray()'
+```
+비어 있으면 `lib/models/user-task.js` 의 `userTaskSchema.index({ content_number: 1 })` 를
+`{ unique: true }` 로 바꾼다.
+
 *알아 둘 제약* — 단일 노드라서 replica set 이 아니고, 따라서 다중 문서 트랜잭션을 쓸 수 없다.
 지금 코드는 트랜잭션을 쓰지 않으므로 문제는 없다. 필요해지면 `--replSet` 로 단일 노드
 replica set 을 구성하면 된다.
