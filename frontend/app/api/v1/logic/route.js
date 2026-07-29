@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
-import connectMongo from '@/lib/mongoose'
-import ArchiveData from '@/lib/models/archive/archive-data'
+import { getDb } from '@/lib/db'
+import { archives } from '@/lib/db/schema'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  await connectMongo()
+  const db = getDb()
 
-  // Mongoose 7 에서 콜백 형태의 find(query, cb) 는 제거됐다.
-  const archives = await ArchiveData.find({}).lean()
+  // 아카이브에 쓰는 코드는 아직 없어 지금은 빈 배열이 나간다.
+  // Mongo 시절 문서의 _id 자리는 identity 컬럼 id 로 바뀌었다(참조하는 코드 없음).
+  const rows = await db.select().from(archives)
 
-  return NextResponse.json(archives)
+  return NextResponse.json(rows)
 }

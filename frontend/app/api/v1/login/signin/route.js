@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
-import connectMongo from '@/lib/mongoose'
-import User from '@/lib/models/user'
+import { getDb } from '@/lib/db'
+import { users } from '@/lib/db/schema'
 
 const COOKIE_NAME = 'userCookie'
 // Express maxAge(ms) 8640000 == Next maxAge(s) 8640 — 기존 2.4시간 수명 유지
 const COOKIE_MAX_AGE = 8640
 
 export async function POST(request) {
-  await connectMongo()
+  const db = getDb()
 
   const { user_id, user_pw } = await request.json()
-  const signinUser = await User.findOne({ user_id }).exec()
+  const [signinUser] = await db.select().from(users).where(eq(users.user_id, user_id)).limit(1)
 
   if (signinUser == null) {
     // 미등록도 기존과 동일하게 HTTP 200 으로 응답한다.

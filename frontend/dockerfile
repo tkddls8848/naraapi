@@ -35,5 +35,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# TLS 는 앞단 nginx 가 종단한다. 컨테이너는 평문 http 로만 듣는다.
+# TLS 는 앞단 프로바이더(로드밸런서 등)가 종단한다. 컨테이너는 평문 http 로만 듣는다.
 CMD ["node", "server.js"]

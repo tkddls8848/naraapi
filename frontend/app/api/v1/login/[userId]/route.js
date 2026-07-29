@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
-import connectMongo from '@/lib/mongoose'
-import User from '@/lib/models/user'
-import UserTask from '@/lib/models/user-task'
+import { getDb } from '@/lib/db'
+import { users } from '@/lib/db/schema'
 
 const COOKIE_NAME = 'userCookie'
 const EXPIRED_COOKIE_MAX_AGE = 0
@@ -25,11 +25,13 @@ export async function GET(request, { params }) {
 
 // 회원탈퇴
 export async function DELETE(request, { params }) {
-  await connectMongo()
+  const db = getDb()
 
   const { userId } = await params
-  await User.deleteOne({ user_id: userId })
-  await UserTask.deleteMany({ user_id: userId })
+  // 저장한 공고는 user_tasks 의 ON DELETE CASCADE 로 DB 가 같이 지운다.
+  // Mongo 에서는 deleteOne + deleteMany 를 트랜잭션 없이 두 번 호출해서, 사이에서
+  // 죽으면 주인 없는 공고가 남았다. 이제 한 문장이라 그 틈이 없다.
+  await db.delete(users).where(eq(users.user_id, userId))
 
   // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖 (jwt.sign 만 사용, 검증 없음)
   const token = jwt.sign({ userId }, process.env.TOKEN_SECRET_KEY, { expiresIn: '1s' })

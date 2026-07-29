@@ -21,7 +21,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ko">
       <head>
-        {/* 구 pages/_document.js 에서 이관 — nginx 뒤 혼합 콘텐츠 방지 */}
+        {/* TLS 종단이 앞단(프로바이더)에 있어 앱은 http 로 듣는다. 혼합 콘텐츠 방지용으로 유지한다. */}
         <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
       </head>
       <body>

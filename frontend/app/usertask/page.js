@@ -1,8 +1,9 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
-import connectMongo from '@/lib/mongoose'
-import UserTask from '@/lib/models/user-task'
+import { getDb } from '@/lib/db'
+import { userTasks } from '@/lib/db/schema'
 import NoData from '@/app/components/common/no-data'
 import UserTasks from '@/app/components/user-task/user-tasks'
 
@@ -11,9 +12,9 @@ export const dynamic = 'force-dynamic'
 // 자기 라우트 핸들러를 HTTP 로 다시 부르지 않고 DB 를 직접 읽는다.
 // 반환 모양은 GET /api/v1/usertask/:userId 의 result 와 동일하다.
 async function fetchUserTasks(userId) {
-  await connectMongo()
+  const db = getDb()
 
-  const tasks = await UserTask.find({ user_id: userId }).lean()
+  const tasks = await db.select().from(userTasks).where(eq(userTasks.user_id, userId))
 
   return tasks.map((task) => [task.user_id, task.task_type, task.task_title, task.content_number])
 }
