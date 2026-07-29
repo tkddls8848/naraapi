@@ -25,6 +25,36 @@ services:
     restart: on-failure
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
 
+  # 자체 호스팅 MongoDB. 8.0 은 LTS 라인이라 패치만 올라간다.
+  # mongod 5.0 이상은 CPU 의 AVX 지원이 필요하다(아주 오래된 인스턴스에서는 기동 실패).
+  mongo:
+    container_name: my-mongo
+    image: mongo:8.0
+    restart: unless-stopped
+    # ports 를 일부러 열지 않는다. 같은 compose 네트워크의 naraapi 만 mongo:27017 로 붙는다.
+    # 호스트에서 mongosh 로 접속할 일이 있으면 `docker compose exec mongo mongosh` 를 쓴다.
+    env_file:
+      - ./frontend/config_files/.env.production
+    volumes:
+      # 데이터는 반드시 named volume 에 둔다. 컨테이너 레이어에 두면 재생성 시 날아간다.
+      - mongo-data:/data/db
+      # 최초 기동(볼륨이 빈 상태)에서만 실행돼 앱 전용 계정을 만든다.
+      - ./mongo/init:/docker-entrypoint-initdb.d:ro
+    # 단순 ping 은 초기화 중 임시 mongod 에도 응답해서, 앱 계정이 만들어지기 전에
+    # healthy 로 판정될 수 있다. 앱 계정으로 실제 인증까지 되는지를 조건으로 둔다.
+    # compose 가 config 시점에 치환하지 않도록 $ 는 $$ 로 이스케이프한다(컨테이너 셸이 푼다).
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --username "$$MONGO_APP_USER" --password "$$MONGO_APP_PASSWORD"
+          --authenticationDatabase "$$MONGO_INITDB_DATABASE"
+          --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q '^1$$'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
   naraapi:
     container_name: my-naraapi
     build:
@@ -37,6 +67,15 @@ services:
     env_file:
       - ./frontend/config_files/.env.production
     depends_on:
-      - certbot
-      - nginx
+      certbot:
+        condition: service_started
+      nginx:
+        condition: service_started
+      # mongoose 를 bufferCommands:false 로 붙이므로, DB 가 뜨기 전에 들어온 요청은
+      # 대기하지 않고 바로 실패한다. 헬스체크가 통과한 뒤에 앱을 띄운다.
+      mongo:
+        condition: service_healthy
     restart: on-failure
+
+volumes:
+  mongo-data:
