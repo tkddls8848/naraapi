@@ -1,19 +1,16 @@
 /**
- * Mongo → Postgres 일회성 데이터 이전 스크립트.
- *
- * Mongo 드라이버를 쓰지 않고 mongoexport 로 뽑은 JSON 파일을 읽는다. 이렇게 하면
- * Mongo 컨테이너를 이미 내린 뒤에도 이전이 가능하고, 앱에 불필요한 의존성이 남지 않는다.
+ * Mongo에서 Postgres로 한 번만 데이터를 옮기는 스크립트.
  *
  * 1) 기존 배포에서 내보내기
  *    docker compose exec -T mongo mongoexport -u "$MONGO_INITDB_ROOT_USERNAME" \
  *      -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin \
  *      --db naraapi --collection userlists --jsonArray > userlists.json
- *    (usertasklists 도 같은 방식으로)
+ *    (usertasklists도 같은 방식으로 내보낸다.)
  *
- * 2) Postgres 가 뜬 상태에서 넣기
+ * 2) Postgres가 빈 상태에서 넣기
  *    DATABASE_URL=postgres://... node scripts/import-from-mongo.mjs userlists.json usertasklists.json
  *
- * 두 번 돌려도 안전하다(PK 충돌은 건너뛴다).
+ * 여러 번 실행해도 기본 키나 공고 중복 제약과 충돌하는 행은 건너뛴다.
  */
 import fs from 'node:fs'
 import pg from 'pg'
@@ -25,7 +22,7 @@ if (!usersPath || !tasksPath) {
   process.exit(1)
 }
 if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL 환경변수가 필요하다.')
+  console.error('DATABASE_URL 환경변수가 필요합니다.')
   process.exit(1)
 }
 
@@ -33,10 +30,15 @@ function readJsonArray(path) {
   const parsed = JSON.parse(fs.readFileSync(path, 'utf8'))
   if (!Array.isArray(parsed)) {
     throw new Error(
-      `${path} 가 JSON 배열이 아니다. mongoexport 에 --jsonArray 를 붙였는지 확인하라.`
+      `${path}가 JSON 배열이 아닙니다. mongoexport에 --jsonArray를 붙였는지 확인하세요.`
     )
   }
   return parsed
+}
+
+function nullableText(value) {
+  if (value == null || value === '') return null
+  return String(value)
 }
 
 const userDocs = readJsonArray(usersPath)
@@ -52,10 +54,11 @@ const summary = {
   tasksSkipped: 0,
   orphanTasks: [],
   tasksWithoutNumber: 0,
+  tasksWithoutNoticeId: 0,
 }
 
 try {
-  // 중간에 실패하면 아무것도 남지 않게 한 트랜잭션으로 처리한다.
+  // 중간에 실패하면 일부만 남지 않도록 전체 이관을 한 트랜잭션으로 처리한다.
   await client.query('BEGIN')
 
   for (const doc of userDocs) {
@@ -64,15 +67,15 @@ try {
       continue
     }
     const res = await client.query(
-      `INSERT INTO users (user_id, user_pw, e_mail) VALUES ($1, $2, $3)
+      `INSERT INTO users (user_id, user_pw, email) VALUES ($1, $2, $3)
        ON CONFLICT (user_id) DO NOTHING`,
-      [doc.user_id, doc.user_pw ?? '', doc.e_mail ?? null]
+      [doc.user_id, doc.user_pw ?? '', doc.email ?? doc.e_mail ?? null]
     )
     if (res.rowCount === 1) summary.users += 1
     else summary.usersSkipped += 1
   }
 
-  // 외래키가 걸려 있어 주인 없는 공고는 넣을 수 없다. 조용히 실패시키지 않고 모아서 보고한다.
+  // 외래 키가 가리킬 사용자가 없는 저장 공고는 조용히 유실하지 않고 결과에 모아 알린다.
   const { rows: existing } = await client.query('SELECT user_id FROM users')
   const knownUsers = new Set(existing.map((row) => row.user_id))
 
@@ -81,24 +84,44 @@ try {
     summary.orphanTasks.push(`${doc.user_id ?? '(user_id 없음)'} / ${doc.task_title ?? ''}`)
     return false
   })
-  const hasNumber = (doc) => Number.isInteger(Number(doc.content_number))
+  const hasNumber = (doc) =>
+    doc.content_number != null &&
+    doc.content_number !== '' &&
+    Number.isInteger(Number(doc.content_number))
+  const noticeFields = (doc) => ({
+    noticeId: nullableText(doc.notice_id ?? doc.noticeId),
+    noticeUrl: nullableText(doc.notice_url ?? doc.noticeUrl),
+  })
 
-  // 번호가 있는 문서를 먼저 넣는다. 번호 없는 문서를 섞어서 넣으면 identity 가 낮은 번호를
-  // 먼저 내주고, 뒤에 오는 명시적 번호가 그것과 충돌해 조용히 건너뛰어질 수 있다.
-  // content_number 는 GENERATED ALWAYS 라서 값을 직접 넣으려면 OVERRIDING 이 필요하다.
+  // 기존 Mongo 문서에는 공고 식별자와 링크가 없으므로 값을 추측하지 않고 NULL로 이관한다.
+  // 제목은 고유하지 않고 링크도 복원할 수 없기 때문이다. Postgres UNIQUE는 NULL끼리는 중복으로
+  // 보지 않으므로 새 저장 흐름에서는 noticeId를 반드시 전달해야 중복 제약이 완전히 적용된다.
+  summary.tasksWithoutNoticeId = ownedTasks.filter(
+    (doc) => noticeFields(doc).noticeId == null
+  ).length
+
+  // content_number가 있는 문서는 기존 기본 키를 유지한다. GENERATED ALWAYS identity에 값을 직접
+  // 넣으려면 OVERRIDING SYSTEM VALUE가 필요하다.
   for (const doc of ownedTasks.filter(hasNumber)) {
+    const { noticeId, noticeUrl } = noticeFields(doc)
     const res = await client.query(
-      `INSERT INTO user_tasks (content_number, user_id, task_type, task_title)
-       OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4)
-       ON CONFLICT (content_number) DO NOTHING`,
-      [Number(doc.content_number), doc.user_id, doc.task_type ?? '', doc.task_title ?? '']
+      `INSERT INTO user_tasks
+         (content_number, user_id, task_type, task_title, notice_id, notice_url)
+       OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT DO NOTHING`,
+      [
+        Number(doc.content_number),
+        doc.user_id,
+        doc.task_type ?? '',
+        doc.task_title ?? '',
+        noticeId,
+        noticeUrl,
+      ]
     )
     if (res.rowCount === 1) summary.tasks += 1
     else summary.tasksSkipped += 1
   }
 
-  // 번호를 직접 넣었으므로 identity 시퀀스를 최대값 뒤로 옮긴다.
-  // 이걸 빼면 이어지는 insert 와 이후 앱의 저장에서 PK 충돌이 난다.
   const bumpSequence = () =>
     client.query(`
       SELECT setval(
@@ -109,32 +132,35 @@ try {
     `)
   await bumpSequence()
 
-  // 번호가 없던 문서는 이제 최대값 뒤의 새 번호를 받는다.
-  // 충돌 판정에 쓸 PK 가 없어 그냥 넣으면 재실행 때 중복되므로, 같은
-  // (user_id, task_type, task_title) 이 이미 있으면 건너뛴다. 원본에 정말로 같은 공고가
-  // 두 번 있었다면 한 건으로 합쳐지는데, 번호 없는 레거시 문서에 한정된 이야기라
-  // 중복 삽입보다 이쪽이 낫다고 봤다.
+  // 번호가 없는 레거시 문서는 identity가 새 번호를 만든다. notice_id가 NULL이면 UNIQUE 제약만으로
+  // 재실행 중복을 막을 수 없으므로 사용자, 유형, 제목이 같은 레거시 행을 추가로 건너뛴다.
   for (const doc of ownedTasks.filter((doc) => !hasNumber(doc))) {
     summary.tasksWithoutNumber += 1
+    const { noticeId, noticeUrl } = noticeFields(doc)
     const res = await client.query(
-      `INSERT INTO user_tasks (user_id, task_type, task_title)
-       SELECT $1, $2, $3
+      `INSERT INTO user_tasks (user_id, task_type, task_title, notice_id, notice_url)
+       SELECT $1, $2, $3, $4, $5
        WHERE NOT EXISTS (
          SELECT 1 FROM user_tasks
-         WHERE user_id = $1 AND task_type = $2 AND task_title = $3
-       )`,
-      [doc.user_id, doc.task_type ?? '', doc.task_title ?? '']
+         WHERE user_id = $1
+           AND task_type = $2
+           AND (
+             ($4::text IS NOT NULL AND notice_id = $4)
+             OR ($4::text IS NULL AND notice_id IS NULL AND task_title = $3)
+           )
+       )
+       ON CONFLICT DO NOTHING`,
+      [doc.user_id, doc.task_type ?? '', doc.task_title ?? '', noticeId, noticeUrl]
     )
     if (res.rowCount === 1) summary.tasks += 1
     else summary.tasksSkipped += 1
   }
 
   await bumpSequence()
-
   await client.query('COMMIT')
 } catch (err) {
   await client.query('ROLLBACK')
-  console.error('이전 실패 — 롤백했다.')
+  console.error('이전 실패: 롤백했습니다.')
   throw err
 } finally {
   await client.end()
@@ -143,9 +169,14 @@ try {
 console.log(`users       : ${summary.users}건 입력, ${summary.usersSkipped}건 건너뜀(중복/무효)`)
 console.log(`user_tasks  : ${summary.tasks}건 입력, ${summary.tasksSkipped}건 건너뜀(중복)`)
 if (summary.tasksWithoutNumber > 0) {
-  console.log(`  content_number 가 없어 새 번호를 부여한 건: ${summary.tasksWithoutNumber}`)
+  console.log(`  content_number가 없어 새 번호를 부여한 건: ${summary.tasksWithoutNumber}`)
+}
+if (summary.tasksWithoutNoticeId > 0) {
+  console.log(`  notice_id가 없어 NULL로 이관한 건: ${summary.tasksWithoutNoticeId}`)
 }
 if (summary.orphanTasks.length > 0) {
-  console.log(`\n주인 없는 공고 ${summary.orphanTasks.length}건은 넣지 않았다 (해당 user 가 없음):`)
+  console.log(
+    `\n주인 없는 공고 ${summary.orphanTasks.length}건은 넣지 않았습니다(해당 user가 없음):`
+  )
   summary.orphanTasks.forEach((item) => console.log(`  - ${item}`))
 }

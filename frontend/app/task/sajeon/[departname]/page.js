@@ -1,23 +1,15 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import jwt from 'jsonwebtoken'
 import NoData from '@/app/components/common/no-data'
 import TaskSearchBar from '@/app/components/task/task-search-bar'
 import TaskSajeon from '@/app/components/task/task-sajeon'
-import { fetchNoticesByDepart, noticeKey } from '@/lib/nara-api'
+import { requireUser } from '@/lib/auth'
+import { fetchNoticesByDepart } from '@/lib/nara-api'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TaskSajeonPage({ params, searchParams }) {
-  const cookieStore = await cookies()
-  const jwtCookie = cookieStore.get('userCookie')?.value
-  if (!jwtCookie) {
-    redirect('/')
-  }
-
+  await requireUser()
   const { departname } = await params
   const { beginDate, endDate } = await searchParams
-  const user = jwt.decode(jwtCookie)?.userId
   const tasks = await fetchNoticesByDepart({
     kind: 'sajeon',
     departName: departname,
@@ -34,8 +26,8 @@ export default async function TaskSajeonPage({ params, searchParams }) {
       <TaskSearchBar />
       {tasks.length > 0 ? (
         <div className="notice-grid">
-          {tasks.map((task, index) => (
-            <TaskSajeon key={noticeKey(task, index)} task={task} user={user} />
+          {tasks.map((task) => (
+            <TaskSajeon key={task.id} task={task} />
           ))}
         </div>
       ) : (

@@ -1,51 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useActionState, useState } from 'react'
+import { signUp } from '@/app/actions/auth-actions'
+import ActionFeedback from '@/app/userlogin/action-feedback'
+import SubmitButton from '@/app/userlogin/submit-button'
 
-// 서버가 process.env.STATUS_* 값을 그대로 내려주므로 기존 문자열을 그대로 유지한다.
-const STATUS_ALREADY_JOIN = 'already join user'
-const STATUS_JOIN = 'join user'
-const STATUS_NULL_DATA = 'null data'
+const INITIAL_STATE = { ok: null }
+const SIGN_UP_ERRORS = {
+  'already-registered': '이미 가입된 아이디입니다.',
+}
 
-const PW_MATCH_MESSAGE = '확인되었습니다.'
-const PW_MISMATCH_MESSAGE = '비밀번호 입력이 잘못되었습니다.'
-
-export default function Join() {
-  const [userId, setUserId] = useState('')
+export default function JoinPage() {
+  const [state, formAction] = useActionState(signUp, INITIAL_STATE)
   const [userPw, setUserPw] = useState('')
-  // 최초 렌더에서 '' !== undefined 라 안내문이 뜨던 기존 동작을 그대로 유지한다.
-  const [userRePw, setUserRePw] = useState()
-  const [userEmail, setUserEmail] = useState('')
-  const router = useRouter()
+  const [userRePw, setUserRePw] = useState('')
+  const hasPasswordInput = userPw !== '' || userRePw !== ''
+  const passwordsMatch = userPw === userRePw
 
-  const pwInputCheck = userPw === userRePw
-  const pwAlarm = pwInputCheck ? PW_MATCH_MESSAGE : PW_MISMATCH_MESSAGE
-
-  const joinSubmit = async (e) => {
-    e.preventDefault()
-    // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖 — 비밀번호는 기존과 동일하게 평문 전송한다.
-    const res = await fetch('/api/v1/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, user_pw: userPw, e_mail: userEmail }),
-    })
-    const { state } = await res.json()
-
-    if (state === STATUS_ALREADY_JOIN) {
-      alert('이미 가입되어 있습니다.')
-    } else if (state === STATUS_JOIN) {
-      alert('가입되었습니다.')
-      router.push('/')
-      router.refresh()
-    } else if (state === STATUS_NULL_DATA) {
-      alert('null')
+  const preventPasswordMismatch = (event) => {
+    if (!passwordsMatch) {
+      event.preventDefault()
     }
   }
 
   return (
     <div className="flex justify-center py-6 sm:py-10">
-      <form className="panel" onSubmit={joinSubmit}>
+      <form className="panel" action={formAction} onSubmit={preventPasswordMismatch}>
         <h1 className="panel-title">회원가입</h1>
         <p className="panel-caption">공고 저장 기능을 쓰려면 계정이 필요합니다.</p>
         <div className="mt-7 flex flex-col gap-4">
@@ -56,9 +37,10 @@ export default function Join() {
             <input
               className="input"
               id="id"
+              name="userId"
               autoComplete="username"
               placeholder="Enter Your ID"
-              onChange={(e) => setUserId(e.target.value)}
+              required
             />
           </div>
           <div className="field">
@@ -68,10 +50,13 @@ export default function Join() {
             <input
               className="input"
               id="pw"
+              name="userPw"
               type="password"
               autoComplete="new-password"
               placeholder="Enter Your Password"
-              onChange={(e) => setUserPw(e.target.value)}
+              value={userPw}
+              onChange={(event) => setUserPw(event.target.value)}
+              required
             />
           </div>
           <div className="field">
@@ -81,14 +66,19 @@ export default function Join() {
             <input
               className="input"
               id="repw"
+              name="userPwConfirm"
               type="password"
               autoComplete="new-password"
               placeholder="Re Enter New Password"
-              onChange={(e) => setUserRePw(e.target.value)}
+              value={userRePw}
+              onChange={(event) => setUserRePw(event.target.value)}
+              required
             />
-            <div className={pwInputCheck ? 'form-hint-ok' : 'form-hint-error'} id="pwAlarm">
-              {pwAlarm}
-            </div>
+            {hasPasswordInput ? (
+              <p className={passwordsMatch ? 'form-hint-ok' : 'form-hint-error'}>
+                {passwordsMatch ? '비밀번호가 일치합니다.' : '비밀번호가 일치하지 않습니다.'}
+              </p>
+            ) : null}
           </div>
           <div className="field">
             <label className="field-label" htmlFor="email">
@@ -97,18 +87,27 @@ export default function Join() {
             <input
               className="input"
               id="email"
+              name="email"
               type="email"
               autoComplete="email"
               placeholder="Enter Your E-Mail"
-              onChange={(e) => setUserEmail(e.target.value)}
             />
           </div>
-          <button className="btn-success btn-block mt-1" type="submit">
+          <ActionFeedback
+            state={state}
+            successMessage="회원가입이 완료되었습니다."
+            errorMessages={SIGN_UP_ERRORS}
+          />
+          <SubmitButton
+            className="btn-success btn-block mt-1"
+            pendingLabel="가입 중..."
+            disabled={hasPasswordInput && !passwordsMatch}
+          >
             회원가입
-          </button>
-          <button className="btn-ghost btn-block" type="button" onClick={() => router.push('/')}>
+          </SubmitButton>
+          <Link className="btn-ghost btn-block" href="/">
             돌아가기
-          </button>
+          </Link>
         </div>
       </form>
     </div>

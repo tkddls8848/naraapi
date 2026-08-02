@@ -2,13 +2,12 @@ import NoticeCard from './notice-card'
 import SaveTaskButton from './save-task-button'
 import DownloadLink from './download-link'
 
-export default function TaskSajeon({ task, user }) {
-  const taskTitle = task.prdctClsfcNoNm
+export default function TaskSajeon({ task }) {
   const rows = [
-    { label: '기관명', value: task.rlDminsttNm },
-    { label: '등록일', value: task.rcptDt },
-    { label: '마감일', value: task.opninRgstClseDt },
-    { label: '첨부파일', value: <DownloadLink href={task.specDocFileUrl1} /> },
+    { label: '기관명', value: task.departName },
+    { label: '등록일', value: task.registeredAt },
+    { label: '마감일', value: task.closesAt },
+    { label: '첨부파일', value: <DownloadLink href={task.fileUrl} /> },
   ]
 
   const badge = (
@@ -23,8 +22,13 @@ export default function TaskSajeon({ task, user }) {
   )
 
   return (
-    <NoticeCard className="card card-hover" badge={badge} title={taskTitle} rows={rows}>
-      <SaveTaskButton userId={user} taskType="sajeon" taskTitle={taskTitle} />
+    <NoticeCard className="card card-hover" badge={badge} title={task.title} rows={rows}>
+      <SaveTaskButton
+        taskType={task.kind}
+        taskTitle={task.title}
+        noticeId={task.id}
+        noticeUrl={task.fileUrl}
+      />
     </NoticeCard>
   )
 }

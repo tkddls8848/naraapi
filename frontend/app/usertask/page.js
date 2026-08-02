@@ -1,34 +1,13 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { eq } from 'drizzle-orm'
-import jwt from 'jsonwebtoken'
-import { getDb } from '@/lib/db'
-import { userTasks } from '@/lib/db/schema'
+import { getSavedNotices } from '@/app/actions/user-task-actions'
 import NoData from '@/app/components/common/no-data'
 import UserTasks from '@/app/components/user-task/user-tasks'
+import { requireUser } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-// 자기 라우트 핸들러를 HTTP 로 다시 부르지 않고 DB 를 직접 읽는다.
-// 반환 모양은 GET /api/v1/usertask/:userId 의 result 와 동일하다.
-async function fetchUserTasks(userId) {
-  const db = getDb()
-
-  const tasks = await db.select().from(userTasks).where(eq(userTasks.user_id, userId))
-
-  return tasks.map((task) => [task.user_id, task.task_type, task.task_title, task.content_number])
-}
-
 export default async function UserTaskPage() {
-  const cookieStore = await cookies()
-  const jwtCookie = cookieStore.get('userCookie')?.value
-  // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖 — 쿠키 존재 여부만 확인하고 서명은 검증하지 않는다.
-  if (!jwtCookie) {
-    redirect('/')
-  }
-
-  const { userId } = jwt.decode(jwtCookie)
-  const usertasks = await fetchUserTasks(userId)
+  const userId = await requireUser()
+  const usertasks = await getSavedNotices()
 
   return (
     <div>
@@ -46,7 +25,7 @@ export default async function UserTaskPage() {
       ) : (
         <div className="notice-grid">
           {usertasks.map((usertask) => (
-            <UserTasks usertask={usertask} key={usertask[3]} />
+            <UserTasks usertask={usertask} key={usertask.contentNumber} />
           ))}
         </div>
       )}

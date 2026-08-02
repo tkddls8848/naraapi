@@ -20,10 +20,6 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
-      <head>
-        {/* TLS 종단이 앞단(프로바이더)에 있어 앱은 http 로 듣는다. 혼합 콘텐츠 방지용으로 유지한다. */}
-        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
-      </head>
       <body>
         <Header />
         <main className="app-main">{children}</main>

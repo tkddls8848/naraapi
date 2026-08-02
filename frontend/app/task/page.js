@@ -1,14 +1,10 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import TaskSearchBar from '@/app/components/task/task-search-bar'
+import { requireUser } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TaskSearchPage() {
-  const cookieStore = await cookies()
-  if (!cookieStore.has('userCookie')) {
-    redirect('/')
-  }
+  await requireUser()
 
   return (
     <div>

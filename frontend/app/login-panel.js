@@ -1,46 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useActionState, useEffect } from 'react'
+import { signIn, signOut } from '@/app/actions/auth-actions'
+import ActionFeedback from '@/app/userlogin/action-feedback'
+import SubmitButton from '@/app/userlogin/submit-button'
 
 const GUEST = 'Guest'
+const INITIAL_STATE = { ok: null }
 
-// 서버가 process.env.STATUS_* 값을 그대로 내려주므로 기존 문자열을 그대로 유지한다.
-const STATUS_WRONG_PASSWORD = 'wrong password'
-const STATUS_NO_REGITERED = 'not registered user'
+const LOGIN_ERRORS = {
+  'wrong-password': '로그인 정보가 올바르지 않습니다.',
+  'not-registered': '가입한 계정을 찾을 수 없습니다.',
+}
 
 export default function LoginPanel({ loginState }) {
-  const [userId, setUserId] = useState('')
-  const [userPw, setUserPw] = useState('')
   const router = useRouter()
-  const isGuest = loginState === GUEST
+  const [signInState, signInAction] = useActionState(signIn, INITIAL_STATE)
+  const [signOutState, signOutAction] = useActionState(signOut, INITIAL_STATE)
+  const isGuest = loginState === GUEST || signOutState?.ok === true
+  const signedIn = signInState?.ok === true
 
-  const loginSubmit = async (e) => {
-    e.preventDefault()
-    // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖 — 비밀번호는 기존과 동일하게 평문 전송한다.
-    const res = await fetch('/api/v1/login/signin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, user_pw: userPw }),
-    })
-    const { state } = await res.json()
-
-    if (state === STATUS_WRONG_PASSWORD) {
-      alert('로그인 정보가 잘못되었습니다.')
-    } else if (state === STATUS_NO_REGITERED) {
-      alert('가입한 정보가 없습니다.')
-    } else {
+  useEffect(() => {
+    if (signedIn) {
       router.push('/task')
       router.refresh()
     }
-  }
-
-  const logoutSubmit = async () => {
-    await fetch(`/api/v1/login/${loginState}`)
-    alert('로그아웃 되었습니다.')
-    router.push('/')
-    router.refresh()
-  }
+  }, [router, signedIn])
 
   return (
     <div className="flex justify-center py-6 sm:py-10">
@@ -57,8 +44,14 @@ export default function LoginPanel({ loginState }) {
           </div>
         </div>
 
+        {signOutState?.ok === true ? (
+          <div className="mt-4">
+            <ActionFeedback state={signOutState} successMessage="로그아웃했습니다." />
+          </div>
+        ) : null}
+
         {isGuest ? (
-          <form className="mt-7 flex flex-col gap-4" onSubmit={loginSubmit}>
+          <form className="mt-7 flex flex-col gap-4" action={signInAction}>
             <div className="field">
               <label className="field-label" htmlFor="id">
                 아이디
@@ -66,10 +59,10 @@ export default function LoginPanel({ loginState }) {
               <input
                 className="input"
                 id="id"
+                name="userId"
                 autoComplete="username"
-                defaultValue={userId}
                 placeholder="ID"
-                onChange={(e) => setUserId(e.target.value)}
+                required
               />
             </div>
             <div className="field">
@@ -79,41 +72,37 @@ export default function LoginPanel({ loginState }) {
               <input
                 className="input"
                 id="pw"
+                name="userPw"
                 type="password"
                 autoComplete="current-password"
-                defaultValue={userPw}
                 placeholder="PW"
-                onChange={(e) => setUserPw(e.target.value)}
+                required
               />
             </div>
-            <button className="btn-primary btn-block mt-1" type="submit">
+            <ActionFeedback state={signInState} errorMessages={LOGIN_ERRORS} />
+            <SubmitButton className="btn-primary btn-block mt-1" pendingLabel="로그인 중...">
               로그인
-            </button>
-            <button
-              className="btn-outline btn-block"
-              type="button"
-              onClick={() => router.push('/userlogin/join')}
-            >
+            </SubmitButton>
+            <Link className="btn-outline btn-block" href="/userlogin/join">
               회원가입
-            </button>
+            </Link>
           </form>
         ) : (
           <div className="mt-7 flex flex-col gap-3">
-            <button className="btn-primary btn-block" onClick={logoutSubmit}>
-              로그아웃
-            </button>
-            <button
-              className="btn-outline btn-block"
-              onClick={() => router.push('/userlogin/modify')}
-            >
+            <form action={signOutAction}>
+              <SubmitButton className="btn-primary btn-block" pendingLabel="로그아웃 중...">
+                로그아웃
+              </SubmitButton>
+            </form>
+            <Link className="btn-outline btn-block" href="/userlogin/modify">
               정보수정
-            </button>
-            <button
+            </Link>
+            <Link
               className="btn-ghost btn-block text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
-              onClick={() => router.push('/userlogin/delete')}
+              href="/userlogin/delete"
             >
               회원탈퇴
-            </button>
+            </Link>
           </div>
         )}
       </div>

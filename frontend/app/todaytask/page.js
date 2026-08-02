@@ -1,15 +1,11 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
 import TodaySearchBar from '@/app/components/today/today-search-bar'
+import { requireUser } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TodayTaskPage() {
-  const cookieStore = await cookies()
-  if (!cookieStore.has('userCookie')) {
-    redirect('/')
-  }
+  await requireUser()
 
   return (
     <div>

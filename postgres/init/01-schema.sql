@@ -1,39 +1,26 @@
--- postgres 컨테이너의 /docker-entrypoint-initdb.d 에 마운트된다.
--- **데이터 볼륨이 빈 최초 기동에서만** 실행된다. 이미 데이터가 있으면 무시되므로,
--- 나중에 스키마를 바꿀 때는 이 파일이 아니라 ALTER 문을 직접 적용해야 한다.
---
--- frontend/lib/db/schema.js 와 짝을 이룬다(그쪽은 쿼리용 선언, 이 파일이 실제 DDL).
--- 한쪽만 고치면 어긋나서 기동 후 첫 쿼리에서 바로 깨지므로 둘을 함께 고쳐야 한다.
+-- 이 파일은 비어 있는 Postgres 데이터 디렉터리의 최초 기동 때만 실행된다.
+-- 운영 중인 데이터베이스에는 별도의 ALTER 문으로 같은 변경을 적용해야 한다.
+-- frontend/lib/db/schema.js와 실제 컬럼 및 제약 조건을 항상 함께 갱신한다.
 
 CREATE TABLE users (
-  -- 로그인 아이디가 자연키다. Mongo 시절에는 unique 인덱스가 앱 코드 선언에 의존했지만
-  -- 여기서는 테이블 정의의 일부라 항상 존재한다.
+  -- 로그인 아이디가 자연키이므로 별도의 대리키 없이 기본 키로 사용한다.
   user_id text PRIMARY KEY,
-  -- NOTE: 보안 강화는 사용자 결정에 따라 범위 밖 — 평문 저장을 유지한다.
+  -- NOTE: 보안 강화는 사용자 결정에 따라 범위 밖이며 평문 저장 방식을 유지한다.
   user_pw text NOT NULL,
-  e_mail text
+  email text
 );
 
 CREATE TABLE user_tasks (
-  -- mongoose-sequence 가 카운터 컬렉션으로 흉내내던 자동증가. identity 는 원자적이고
-  -- 별도 컬렉션도 추가 왕복도 없다.
+  -- mongoose-sequence가 만들던 값을 보존할 수 있는 Postgres identity 기본 키다.
   content_number integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  -- 회원탈퇴 시 저장한 공고를 DB 가 함께 지운다. 앱에서 deleteOne + deleteMany 를
-  -- 트랜잭션 없이 두 번 호출하던 것을 제약으로 옮긴 것이다.
   user_id text NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
   task_type text NOT NULL,
-  task_title text NOT NULL
+  task_title text NOT NULL,
+  -- 기존 Mongo 문서에는 두 값이 없으므로 마이그레이션 호환을 위해 NULL을 허용한다.
+  notice_id text,
+  notice_url text,
+  -- 공고 번호의 체계가 유형마다 다르므로 유형까지 포함해 같은 공고의 중복 저장을 막는다.
+  CONSTRAINT user_tasks_user_notice_unique UNIQUE (user_id, task_type, notice_id)
 );
 
--- Postgres 는 외래키에 인덱스를 자동 생성하지 않는다. 저장된 공고 목록 조회가 이 컬럼으로만 걸린다.
 CREATE INDEX user_tasks_user_id_idx ON user_tasks (user_id);
-
--- 공고 아카이빙용. 나라장터 API 는 물품/공사/용역마다 응답 필드가 달라 원본 JSON 을 그대로 담는다.
--- 아직 쓰는 코드는 없고 GET /api/v1/logic 이 읽기만 한다.
-CREATE TABLE archives (
-  id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  depart_name text,
-  task_type text,
-  date text,
-  task_data jsonb
-);
