@@ -10,12 +10,6 @@ const TASK_TYPE_LABELS = {
   bone: '본공고',
 }
 
-const ERROR_MESSAGES = {
-  'invalid-session': '로그인 정보를 확인할 수 없습니다.',
-  'invalid-content-number': '삭제할 공고 번호가 올바르지 않습니다.',
-  'not-found': '이미 삭제되었거나 찾을 수 없는 공고입니다.',
-}
-
 function DeleteButton({ deleted }) {
   const { pending } = useFormStatus()
 
@@ -31,29 +25,25 @@ function DeleteButton({ deleted }) {
   )
 }
 
-export default function UserTasks({ usertask }) {
+export default function UserTasks({ notice }) {
   const [state, formAction] = useActionState(deleteUserTask, null)
   const deleted = state?.ok === true
-  const message = deleted ? '저장 목록에서 삭제했습니다.' : ERROR_MESSAGES[state?.reason]
-  const taskTypeLabel = TASK_TYPE_LABELS[usertask.taskType] ?? '공고'
+  const taskTypeLabel = TASK_TYPE_LABELS[notice.taskType]
 
   return (
     <article className="card card-hover">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className={usertask.taskType === 'sajeon' ? 'badge-brand' : 'badge-accent'}>
+        <span className={notice.taskType === 'sajeon' ? 'badge-brand' : 'badge-accent'}>
           {taskTypeLabel}
         </span>
-        <span className="badge-neutral">{usertask.userId}</span>
       </div>
-      <h3 className="notice-title">{usertask.taskTitle}</h3>
-      {usertask.noticeId ? (
-        <p className="text-xs text-ink-faint">공고 ID {usertask.noticeId}</p>
-      ) : null}
+      <h3 className="notice-title">{notice.taskTitle}</h3>
+      <p className="text-xs text-ink-faint">공고 ID {notice.noticeId}</p>
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-        {usertask.noticeUrl ? (
+        {notice.noticeUrl ? (
           <a
             className="btn-outline btn-sm"
-            href={usertask.noticeUrl}
+            href={notice.noticeUrl}
             target="_blank"
             rel="noreferrer"
           >
@@ -62,14 +52,11 @@ export default function UserTasks({ usertask }) {
           </a>
         ) : null}
         <form className="flex flex-col items-start gap-2" action={formAction}>
-          <input type="hidden" name="contentNumber" value={usertask.contentNumber} />
+          <input type="hidden" name="contentNumber" value={notice.contentNumber} />
           <DeleteButton deleted={deleted} />
-          {message ? (
-            <p
-              className={deleted ? 'text-sm text-emerald-700' : 'text-sm text-rose-700'}
-              role={deleted ? 'status' : 'alert'}
-            >
-              {message}
+          {deleted ? (
+            <p className="text-sm text-emerald-700" role="status">
+              저장 목록에서 삭제했습니다.
             </p>
           ) : null}
         </form>

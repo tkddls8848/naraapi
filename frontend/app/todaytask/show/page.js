@@ -1,7 +1,6 @@
 import NoData from '@/app/components/common/no-data'
+import NoticeItem from '@/app/components/task/notice-item'
 import TodaySearchBar from '@/app/components/today/today-search-bar'
-import TodaySajeon from '@/app/components/today/today-sajeon'
-import TodayBone from '@/app/components/today/today-bone'
 import { requireUser } from '@/lib/auth'
 import { fetchNoticesForDepartList } from '@/lib/nara-api'
 
@@ -23,7 +22,11 @@ export default async function TodayTaskShowPage({ searchParams }) {
     fetchNoticesForDepartList({ kind: 'bone', departList }),
   ])
 
-  const hasData = sajeonData.length + boneData.length > 0
+  const groups = [
+    { kind: 'sajeon', label: '사전공고', notices: sajeonData, badgeClass: 'badge-brand' },
+    { kind: 'bone', label: '본공고', notices: boneData, badgeClass: 'badge-accent' },
+  ]
+  const hasData = groups.some(({ notices }) => notices.length > 0)
 
   return (
     <div>
@@ -36,47 +39,28 @@ export default async function TodayTaskShowPage({ searchParams }) {
       <TodaySearchBar key={departList.join('|')} initialDeparts={departList} />
       {hasData ? (
         <div className="space-y-10">
-          <section aria-labelledby="today-sajeon-heading">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-xl font-bold tracking-tight" id="today-sajeon-heading">
-                사전공고
-              </h2>
-              <span className="badge-brand">{sajeonData.length}건</span>
-            </div>
-            {sajeonData.length > 0 ? (
-              <div className="notice-grid">
-                {sajeonData.map((notice) => (
-                  <TodaySajeon key={notice.id} task={notice} />
-                ))}
+          {groups.map(({ kind, label, notices, badgeClass }) => (
+            <section aria-labelledby={`today-${kind}-heading`} key={kind}>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-xl font-bold tracking-tight" id={`today-${kind}-heading`}>
+                  {label}
+                </h2>
+                <span className={badgeClass}>{notices.length}건</span>
               </div>
-            ) : (
-              <NoData
-                message="오늘 등록된 사전공고가 없습니다."
-                hint="본공고 결과를 확인해 보세요."
-              />
-            )}
-          </section>
-
-          <section aria-labelledby="today-bone-heading">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-xl font-bold tracking-tight" id="today-bone-heading">
-                본공고
-              </h2>
-              <span className="badge-accent">{boneData.length}건</span>
-            </div>
-            {boneData.length > 0 ? (
-              <div className="notice-grid">
-                {boneData.map((notice) => (
-                  <TodayBone key={notice.id} task={notice} />
-                ))}
-              </div>
-            ) : (
-              <NoData
-                message="오늘 등록된 본공고가 없습니다."
-                hint="사전공고 결과를 확인해 보세요."
-              />
-            )}
-          </section>
+              {notices.length > 0 ? (
+                <div className="notice-grid">
+                  {notices.map((notice) => (
+                    <NoticeItem key={notice.id} notice={notice} />
+                  ))}
+                </div>
+              ) : (
+                <NoData
+                  message={`오늘 등록된 ${label}가 없습니다.`}
+                  hint="다른 공고 결과를 확인해 보세요."
+                />
+              )}
+            </section>
+          ))}
         </div>
       ) : (
         <NoData

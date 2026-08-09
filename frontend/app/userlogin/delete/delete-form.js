@@ -4,16 +4,10 @@ import Link from 'next/link'
 import { useActionState } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { deleteAccount } from '@/app/actions/auth-actions'
-import ActionFeedback from '@/app/userlogin/action-feedback'
-import SubmitButton from '@/app/userlogin/submit-button'
-
-const INITIAL_STATE = { ok: null }
-const DELETE_ERRORS = {
-  'invalid-session': '로그인 정보를 확인할 수 없습니다.',
-}
+import { SubmitButton } from '@/app/userlogin/form-controls'
 
 export default function DeleteForm({ userId }) {
-  const [state, formAction] = useActionState(deleteAccount, INITIAL_STATE)
+  const [state, formAction] = useActionState(deleteAccount, null)
 
   if (state?.ok === true) {
     return (
@@ -41,7 +35,6 @@ export default function DeleteForm({ userId }) {
         <p className="panel-caption">{userId}님의 계정을 삭제하시겠습니까?</p>
         <p className="mt-2 text-xs text-ink-faint">저장한 공고 기록도 함께 사라집니다.</p>
         <div className="mt-7 flex flex-col gap-3">
-          <ActionFeedback state={state} errorMessages={DELETE_ERRORS} />
           <SubmitButton className="btn-danger btn-block" pendingLabel="탈퇴 처리 중...">
             회원탈퇴
           </SubmitButton>

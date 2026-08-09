@@ -3,16 +3,10 @@
 import Link from 'next/link'
 import { useActionState, useState } from 'react'
 import { updateAccount } from '@/app/actions/auth-actions'
-import ActionFeedback from '@/app/userlogin/action-feedback'
-import SubmitButton from '@/app/userlogin/submit-button'
-
-const INITIAL_STATE = { ok: null }
-const UPDATE_ERRORS = {
-  'invalid-session': '로그인 정보를 확인할 수 없습니다.',
-}
+import { ActionFeedback, SubmitButton } from '@/app/userlogin/form-controls'
 
 export default function ModifyForm({ userId }) {
-  const [state, formAction] = useActionState(updateAccount, INITIAL_STATE)
+  const [state, formAction] = useActionState(updateAccount, null)
   const [userPw, setUserPw] = useState('')
   const [userRePw, setUserRePw] = useState('')
   const hasPasswordInput = userPw !== '' || userRePw !== ''
@@ -86,11 +80,7 @@ export default function ModifyForm({ userId }) {
               placeholder="Enter Your E-Mail"
             />
           </div>
-          <ActionFeedback
-            state={state}
-            successMessage="회원정보를 수정했습니다."
-            errorMessages={UPDATE_ERRORS}
-          />
+          <ActionFeedback state={state} successMessage="회원정보를 수정했습니다." />
           <SubmitButton
             className="btn-primary btn-block mt-1"
             pendingLabel="수정 중..."

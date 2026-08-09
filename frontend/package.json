@@ -10,14 +10,12 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "cookies-next": "^6.1.1",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.2",
     "jsonwebtoken": "^9.0.3",
     "next": "^16.2.12",
     "pg": "^8.22.0",
     "react": "^19.2.8",
-    "react-date-range": "^2.0.1",
     "react-datepicker": "^9.1.0",
     "react-dom": "^19.2.8"
   },

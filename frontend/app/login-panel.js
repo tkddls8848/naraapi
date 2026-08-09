@@ -4,22 +4,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'
 import { signIn, signOut } from '@/app/actions/auth-actions'
-import ActionFeedback from '@/app/userlogin/action-feedback'
-import SubmitButton from '@/app/userlogin/submit-button'
-
-const GUEST = 'Guest'
-const INITIAL_STATE = { ok: null }
+import { ActionFeedback, SubmitButton } from '@/app/userlogin/form-controls'
 
 const LOGIN_ERRORS = {
   'wrong-password': '로그인 정보가 올바르지 않습니다.',
   'not-registered': '가입한 계정을 찾을 수 없습니다.',
 }
 
-export default function LoginPanel({ loginState }) {
+export default function LoginPanel({ userId }) {
   const router = useRouter()
-  const [signInState, signInAction] = useActionState(signIn, INITIAL_STATE)
-  const [signOutState, signOutAction] = useActionState(signOut, INITIAL_STATE)
-  const isGuest = loginState === GUEST || signOutState?.ok === true
+  const [signInState, signInAction] = useActionState(signIn, null)
+  const [signOutState, signOutAction] = useActionState(signOut, null)
+  const isGuest = !userId || signOutState?.ok === true
   const signedIn = signInState?.ok === true
 
   useEffect(() => {
@@ -39,7 +35,7 @@ export default function LoginPanel({ loginState }) {
           <div>
             <h1 className="panel-title">조달청 검색기 NARA-P</h1>
             <p className="panel-caption">
-              {isGuest ? '로그인 후 공고를 검색할 수 있습니다.' : `${loginState}님 반갑습니다.`}
+              {isGuest ? '로그인 후 공고를 검색할 수 있습니다.' : `${userId}님 반갑습니다.`}
             </p>
           </div>
         </div>

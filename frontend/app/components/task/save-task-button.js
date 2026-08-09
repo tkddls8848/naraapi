@@ -6,8 +6,6 @@ import { BookmarkIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { saveUserTask } from '@/app/actions/user-task-actions'
 
 const ERROR_MESSAGES = {
-  'invalid-session': '로그인 정보를 확인할 수 없습니다.',
-  'missing-notice-id': '공고 식별자가 없어 저장할 수 없습니다.',
   'already-saved': '이미 저장한 공고입니다.',
 }
 

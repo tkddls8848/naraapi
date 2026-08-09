@@ -4,8 +4,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
-import { getDb } from '@/lib/db'
-import { users } from '@/lib/db/schema'
+import { getDb, users } from '@/lib/db'
 import { requireUser, USER_COOKIE_MAX_AGE, USER_COOKIE_NAME } from '@/lib/auth'
 
 function formText(formData, name) {
@@ -13,16 +12,22 @@ function formText(formData, name) {
 }
 
 async function setUserCookie(userId) {
-  // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖이므로 기존과 같이 서명만 하고 검증하지 않는다.
-  const token = jwt.sign({ userId }, process.env.TOKEN_SECRET_KEY)
+  const token = jwt.sign({ userId }, process.env.TOKEN_SECRET_KEY, {
+    expiresIn: USER_COOKIE_MAX_AGE,
+  })
   const cookieStore = await cookies()
-  // NOTE: 기존 화면이 클라이언트에서 쿠키를 읽으므로 httpOnly/secure 옵션을 추가하지 않는다.
-  cookieStore.set(USER_COOKIE_NAME, token, { maxAge: USER_COOKIE_MAX_AGE })
+  cookieStore.set(USER_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: USER_COOKIE_MAX_AGE,
+  })
 }
 
 async function expireUserCookie() {
   const cookieStore = await cookies()
-  cookieStore.set(USER_COOKIE_NAME, '', { maxAge: 0 })
+  cookieStore.delete(USER_COOKIE_NAME)
 }
 
 /**
@@ -40,7 +45,6 @@ export async function signIn(_previousState, formData) {
     return { ok: false, reason: 'not-registered' }
   }
 
-  // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖이므로 기존 평문 비교를 유지한다.
   if (user.userPw !== userPw) {
     return { ok: false, reason: 'wrong-password' }
   }
@@ -61,7 +65,6 @@ export async function signUp(_previousState, formData) {
   const email = formText(formData, 'email')
   const db = getDb()
 
-  // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖이므로 평문 비밀번호 저장을 유지한다.
   const inserted = await db
     .insert(users)
     .values({ userId, userPw, email })
@@ -80,19 +83,14 @@ export async function signUp(_previousState, formData) {
 /**
  * @param {object|null} _previousState useActionState의 이전 상태
  * @param {FormData} formData userPw, email
- * @returns {Promise<{ok: true}|{ok: false, reason: 'invalid-session'}>}
+ * @returns {Promise<{ok: true}>}
  */
 export async function updateAccount(_previousState, formData) {
   const userId = await requireUser()
-  if (!userId) {
-    return { ok: false, reason: 'invalid-session' }
-  }
-
   const userPw = formText(formData, 'userPw')
   const email = formText(formData, 'email')
   const db = getDb()
 
-  // NOTE: 보안 강화는 사용자 결정에 따라 범위 밖이므로 평문 비밀번호 저장을 유지한다.
   await db.update(users).set({ userPw, email }).where(eq(users.userId, userId))
   await setUserCookie(userId)
   revalidatePath('/')
@@ -109,14 +107,10 @@ export async function signOut() {
 }
 
 /**
- * @returns {Promise<{ok: true}|{ok: false, reason: 'invalid-session'}>}
+ * @returns {Promise<{ok: true}>}
  */
 export async function deleteAccount() {
   const userId = await requireUser()
-  if (!userId) {
-    return { ok: false, reason: 'invalid-session' }
-  }
-
   const db = getDb()
   await db.delete(users).where(eq(users.userId, userId))
   await expireUserCookie()

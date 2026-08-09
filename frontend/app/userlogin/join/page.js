@@ -3,16 +3,14 @@
 import Link from 'next/link'
 import { useActionState, useState } from 'react'
 import { signUp } from '@/app/actions/auth-actions'
-import ActionFeedback from '@/app/userlogin/action-feedback'
-import SubmitButton from '@/app/userlogin/submit-button'
+import { ActionFeedback, SubmitButton } from '@/app/userlogin/form-controls'
 
-const INITIAL_STATE = { ok: null }
 const SIGN_UP_ERRORS = {
   'already-registered': '이미 가입된 아이디입니다.',
 }
 
 export default function JoinPage() {
-  const [state, formAction] = useActionState(signUp, INITIAL_STATE)
+  const [state, formAction] = useActionState(signUp, null)
   const [userPw, setUserPw] = useState('')
   const [userRePw, setUserRePw] = useState('')
   const hasPasswordInput = userPw !== '' || userRePw !== ''

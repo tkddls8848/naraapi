@@ -1,6 +1,5 @@
 import './globals.css'
 import Header from '@/app/components/layout/header'
-import Footer from '@/app/components/layout/footer'
 
 export const metadata = {
   title: '나라장터 검색 웹 페이지',
@@ -23,7 +22,14 @@ export default function RootLayout({ children }) {
       <body>
         <Header />
         <main className="app-main">{children}</main>
-        <Footer />
+        <footer className="border-t border-line/70">
+          <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-1 px-4 py-6 text-sm text-ink-faint sm:flex-row sm:justify-between sm:px-6 lg:px-8">
+            <p>나라장터 공개 API 기반 사업 검색 서비스</p>
+            <a className="link" href="https://www.github.com/tkddls8848">
+              Developed by PSI
+            </a>
+          </div>
+        </footer>
       </body>
     </html>
   )
