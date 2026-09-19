@@ -3,6 +3,4 @@ __pycache__/
 .venv/
 venv/
 .env
-data/pdfs/*
-!data/pdfs/.gitkeep
 .pytest_cache/
