@@ -5,8 +5,14 @@
 
 ## 현재 상태
 
-**설계 단계.** 이 저장소에는 아직 실행 코드가 없습니다.
-설계 합의 후 최소 동작 파이프라인부터 구현합니다.
+**색인 파이프라인 구현 완료.** 검색·질의응답 API는 아직 없습니다.
+
+| 단계 | 상태 |
+|---|---|
+| PDF 파싱 · 청킹 | 완료. 실제 Lenovo Press 문서로 검증 |
+| 임베딩 · DB 적재 | 코드 완료. 실행 검증은 로컬 환경 필요 |
+| 검색 · 질의응답 API | 미착수 |
+| 평가 스크립트 | 미착수 |
 
 | 문서 | 내용 |
 |---|---|
@@ -48,9 +54,44 @@ PDF/Office 문서 → 파싱 → 청킹 → 임베딩 → PostgreSQL(pgvector)
 - 다중 사용자 동시 접속, 운영 수준의 가용성
 - 사내 서버 배포를 위한 IaC (구조만 준비, 구현은 이후)
 
+## 실행
+
+### 파싱만 확인 (DB·모델 불필요)
+
+```bash
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+./.venv/bin/python -m app.ingest.cli --dry-run data/pdfs/*.pdf
+```
+
+### 전체 색인
+
+```bash
+cp .env.example .env          # 비밀번호 수정
+docker compose up -d
+docker compose exec ollama ollama pull bge-m3
+./.venv/bin/python -m app.ingest.cli -v data/pdfs/*.pdf
+```
+
+`--force` 로 재색인, `-v` 로 진행 상황 출력.
+
+## 검증된 동작
+
+SR680a V4 제품 가이드(65페이지) 기준:
+
+- 표 33개 탐지, 청크 326개 생성 (표 275 / 산문 51)
+- TOC 76개 항목에서 섹션 경로 확정 → **섹션 미할당 청크 0개**
+- 표 캡션 행과 그룹 구분 행을 데이터에서 분리
+- 2단 그룹 헤더 병합 (`Accelerators` + `QAT` → `Accelerators QAT`)
+
+청크는 단독으로 읽히도록 제품명과 섹션을 포함합니다.
+
+```
+ThinkSystem SR680a V4 > Standard specifications
+Memory maximum: Up to 4TB by using 32x 128GB RDIMMs
+```
+
 ## 다음 단계
 
-1. 이 설계 문서 검토 및 합의
-2. 최소 동작 파이프라인 구현 (PDF 1건 색인 → 질의 → 출처 포함 답변)
-3. 사내 실제 문서 20~30건으로 확장, 평가셋 구축
-4. 품질 측정 후 생성 모델 교체 실험
+1. 검색 + 질의응답 API (하이브리드 검색, 출처 반환, RAG on/off 토글)
+2. 평가 스크립트 — 정답표 기반 Recall 측정, 베이스라인 대비
+3. 나머지 모델 문서 색인 후 모델 혼동 테스트 (SR650 V4 vs SR650a V4)
