@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS documents (
     id          bigserial PRIMARY KEY,
     source_path text        NOT NULL,
     title       text        NOT NULL,
-    product     text,                      -- 예: "ThinkSystem SR680a V4"  (모델 필터링용)
+    products    text[] NOT NULL DEFAULT '{}',   -- 한 문서가 여러 모델을 다룰 수 있다
     sha256      text        NOT NULL UNIQUE,
     page_count  int,
     status      text        NOT NULL DEFAULT 'pending',   -- pending|indexed|failed
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS chunks (
     section_path text,                     -- TOC 에서 확정. 예: "Memory"
     page_from    int,
     page_to      int,
-    product      text,                     -- documents.product 사본(검색 필터 단순화)
+    products     text[] NOT NULL DEFAULT '{}', -- 본문이 한 모델만 가리키면 그 모델로 좁혀 저장
     embedding    vector(1024),
     UNIQUE (document_id, ordinal)
 );
@@ -42,5 +42,5 @@ CREATE INDEX IF NOT EXISTS chunks_fts_idx
 CREATE INDEX IF NOT EXISTS chunks_trgm_idx
     ON chunks USING gin (content gin_trgm_ops);
 
--- 모델 혼동 차단용 필터
-CREATE INDEX IF NOT EXISTS chunks_product_idx ON chunks (product);
+-- 모델 혼동 차단용 필터. SR650a V4 질문에 SR650i V4 행이 딸려오는 것을 막는다.
+CREATE INDEX IF NOT EXISTS chunks_products_idx ON chunks USING gin (products);

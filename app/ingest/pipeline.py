@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 class IngestResult:
     path: str
     status: str            # indexed | skipped | failed
-    product: str | None = None
+    products: list[str] | None = None
     chunks: int = 0
     detail: str = ""
 
@@ -50,17 +50,17 @@ def ingest_pdf(
         cur.execute("SELECT id, status FROM documents WHERE sha256 = %s", (doc.sha256,))
         row = cur.fetchone()
         if row and row[1] == "indexed" and not force:
-            return IngestResult(str(path), "skipped", doc.product,
+            return IngestResult(str(path), "skipped", doc.products,
                                 detail="이미 색인됨 (--force 로 재색인)")
         if row:
             cur.execute("DELETE FROM documents WHERE id = %s", (row[0],))
 
         cur.execute(
             """INSERT INTO documents
-                 (source_path, title, product, sha256, page_count, status, meta)
+                 (source_path, title, products, sha256, page_count, status, meta)
                VALUES (%s, %s, %s, %s, %s, 'pending', %s)
                RETURNING id""",
-            (str(path), doc.title, doc.product, doc.sha256, doc.page_count,
+            (str(path), doc.title, doc.products, doc.sha256, doc.page_count,
              json.dumps({"parser": "pymupdf"})),
         )
         doc_id = cur.fetchone()[0]
@@ -80,17 +80,17 @@ def ingest_pdf(
             cur.executemany(
                 """INSERT INTO chunks
                      (document_id, ordinal, kind, content, section_path,
-                      page_from, page_to, product, embedding)
+                      page_from, page_to, products, embedding)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 [
                     (doc_id, c.ordinal, c.kind, c.content, c.section_path,
-                     c.page_from, c.page_to, doc.product, str(v))
+                     c.page_from, c.page_to, c.products, str(v))
                     for c, v in zip(chunks, vectors)
                 ],
             )
             cur.execute("UPDATE documents SET status='indexed' WHERE id=%s", (doc_id,))
             conn.commit()
-            return IngestResult(str(path), "indexed", doc.product, len(chunks))
+            return IngestResult(str(path), "indexed", doc.products, len(chunks))
 
         except Exception as exc:
             conn.rollback()
@@ -101,4 +101,4 @@ def ingest_pdf(
                 (str(exc)[:2000], doc_id),
             )
             conn.commit()
-            return IngestResult(str(path), "failed", doc.product, detail=str(exc))
+            return IngestResult(str(path), "failed", doc.products, detail=str(exc))

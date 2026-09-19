@@ -76,18 +76,37 @@ docker compose exec ollama ollama pull bge-m3
 
 ## 검증된 동작
 
-SR680a V4 제품 가이드(65페이지) 기준:
+제품 가이드 6건(787페이지, 청크 5,415개) 전부 파싱 확인:
 
-- 표 33개 탐지, 청크 326개 생성 (표 275 / 산문 51)
-- TOC 76개 항목에서 섹션 경로 확정 → **섹션 미할당 청크 0개**
+| 문서 | 페이지 | 청크 (표 / 산문) |
+|---|---|---|
+| SR630 V4 | 156 | 1,086 (1,012 / 74) |
+| SR650 V4 | 200 | 1,574 (1,493 / 81) |
+| SR650a V4 + SR650i V4 | 132 | 999 (841 / 158) |
+| SR680a V4 | 65 | 326 (275 / 51) |
+| SR850 V4 | 112 | 656 (588 / 68) |
+| SR860 V4 | 122 | 774 (707 / 67) |
+
+처리한 문서 특성:
+
+- TOC 에서 섹션 경로 확정 → **섹션 미할당 청크 0개**
 - 표 캡션 행과 그룹 구분 행을 데이터에서 분리
 - 2단 그룹 헤더 병합 (`Accelerators` + `QAT` → `Accelerators QAT`)
+- **한 문서가 제품 2종을 다루는 경우 분리 태깅**
 
 청크는 단독으로 읽히도록 제품명과 섹션을 포함합니다.
 
 ```
 ThinkSystem SR680a V4 > Standard specifications
 Memory maximum: Up to 4TB by using 32x 128GB RDIMMs
+```
+
+SR650a/SR650i 합본 문서는 본문이 한쪽만 가리킬 때 그 모델로 좁힙니다.
+이것이 모델 혼동을 막는 1차 방어선이고, 2차는 검색 단계의 `products` 필터입니다.
+
+```
+ThinkSystem SR650i V4 > Inference Model
+Description: ThinkSystem SR650i V4 Inference Configuration
 ```
 
 ## 다음 단계

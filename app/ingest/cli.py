@@ -22,7 +22,7 @@ def _dry_run(paths: list[Path]) -> int:
         chunks = chunk_document(doc)
         tables = sum(1 for c in chunks if c.kind == "table_row")
         print(f"{p.name}")
-        print(f"  제품    : {doc.product or '(미검출)'}")
+        print(f"  제품    : {' / '.join(doc.products) or '(미검출)'}")
         print(f"  페이지  : {doc.page_count}")
         print(f"  청크    : {len(chunks)}  (표 {tables} / 산문 {len(chunks) - tables})")
         if chunks:
@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     for p in paths:
         r = ingest_pdf(p, provider=provider, force=args.force)
         mark = {"indexed": "OK", "skipped": "--", "failed": "!!"}[r.status]
-        print(f"[{mark}] {p.name}  {r.product or ''}  청크 {r.chunks}  {r.detail}")
+        print(f"[{mark}] {p.name}  {' / '.join(r.products or [])}  청크 {r.chunks}  {r.detail}")
         failed += r.status == "failed"
     return 1 if failed else 0
 

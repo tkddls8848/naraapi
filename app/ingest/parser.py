@@ -51,7 +51,7 @@ class ProseBlock:
 class ParsedDoc:
     source_path: str
     title: str
-    product: str | None
+    products: list[str]      # 한 문서가 제품 여러 종을 다루는 경우가 있다
     page_count: int
     sha256: str
     blocks: list[TableRowBlock | ProseBlock] = field(default_factory=list)
@@ -190,9 +190,27 @@ def _prose_blocks(page, tables, page_no: int, section: str) -> list[ProseBlock]:
     return out
 
 
-def _extract_product(title: str) -> str | None:
-    m = re.search(r"(ThinkSystem\s+[A-Z]{2}\d+[A-Za-z]*\s+V\d+)", title)
-    return m.group(1) if m else None
+# 제목에 모델이 여러 개 나오는 문서가 있다.
+# 예: "Lenovo ThinkSystem SR650a V4 and SR650i V4 Servers"
+# 이를 하나로 뭉뚱그리면 SR650i 내용이 SR650a 로 태깅되어, 이 프로젝트가
+# 막으려는 바로 그 모델 혼동이 색인 단계에서 발생한다.
+_MODEL_RE = re.compile(r"\b([A-Z]{2}\d{2,4}[a-z]?)\s+(V\d+)\b")
+
+
+def _extract_products(title: str) -> list[str]:
+    seen = dict.fromkeys(
+        f"ThinkSystem {m.group(1)} {m.group(2)}" for m in _MODEL_RE.finditer(title)
+    )
+    return list(seen)
+
+
+def match_products(text: str, candidates: list[str]) -> list[str]:
+    """본문이 특정 모델만 가리키면 그 모델로 좁힌다.
+
+    문서가 SR650a/SR650i 를 함께 다루더라도, 개별 표 행은 대개 한쪽 이야기다.
+    """
+    hits = [c for c in candidates if c.split()[1] in text]
+    return hits if len(hits) == 1 else candidates
 
 
 def parse_pdf(path: str | Path) -> ParsedDoc:
@@ -217,7 +235,7 @@ def parse_pdf(path: str | Path) -> ParsedDoc:
         return ParsedDoc(
             source_path=str(path),
             title=title,
-            product=_extract_product(title),
+            products=_extract_products(title),
             page_count=doc.page_count,
             sha256=sha,
             blocks=blocks,
