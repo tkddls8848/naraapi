@@ -160,7 +160,19 @@ Description: ThinkSystem SR650i V4 Inference Configuration
 
 ### 정답표 작성
 
+초안을 자동으로 뽑아 시작할 수 있습니다.
+
 ```bash
+python tools/draft_questions.py data/pdfs/*.pdf -n 5 > data/eval/draft.yaml
+```
+
+표의 "키: 값" 스펙 행에서 질문을 만들고 정답 문서·페이지를 채워 넣습니다.
+**초안을 그대로 쓰면 안 됩니다.** 색인 파이프라인이 만든 문제를 같은
+파이프라인이 푸는 구조라 점수가 실제보다 높게 나옵니다. 초안은 출발점이고,
+실무에서 실제로 받는 질문을 직접 섞어야 의미가 있습니다.
+
+```bash
+cp data/eval/draft.yaml data/eval/questions.yaml   # 또는 example 에서 시작
 cp data/eval/questions.example.yaml data/eval/questions.yaml
 ```
 
