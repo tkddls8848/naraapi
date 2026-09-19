@@ -12,7 +12,7 @@
 | PDF 파싱 · 청킹 | 완료. 실제 Lenovo Press 문서로 검증 |
 | 임베딩 · DB 적재 | 코드 완료. 실행 검증은 로컬 환경 필요 |
 | 검색 · 질의응답 API | 완료. 실제 PostgreSQL 로 검증 |
-| 평가 스크립트 | 미착수 |
+| 평가 스크립트 | 완료. 정답표는 직접 작성해야 함 |
 
 | 문서 | 내용 |
 |---|---|
@@ -154,7 +154,61 @@ Description: ThinkSystem SR650i V4 Inference Configuration
   → "제공된 문서에서 찾지 못했습니다."  (출처 0건)
 ```
 
+## 평가
+
+바꾼 것이 나아졌는지 숫자로 판단하기 위한 도구입니다.
+
+### 정답표 작성
+
+```bash
+cp data/eval/questions.example.yaml data/eval/questions.yaml
+```
+
+질문마다 정답이 실린 문서와 페이지를 직접 확인해 적습니다.
+이 작업이 평가의 전부입니다 — 없으면 무엇을 바꿔도 나아졌는지 알 수 없습니다.
+
+```yaml
+- id: q001
+  question: SR680a V4 최대 메모리 용량은?
+  answers:
+    - document: Lenovo ThinkSystem SR680a V4 Server
+      pages: [10]
+  expect: "4TB"          # 답변에 이 문자열이 있는지 자동 채점
+  tags: [spec, memory]
+```
+
+문서에 답이 없는 함정 질문은 `unanswerable: true` 로 표시합니다.
+지어내지 않고 "찾지 못했습니다"라고 답하는지 보는 용도입니다.
+
+### 실행
+
+```bash
+python -m app.evaluation.run                        # 검색만. 모델 불필요, 초 단위
+python -m app.evaluation.run --answers              # 답변 생성까지 채점
+python -m app.evaluation.run --answers --baseline   # 무검색 대비군과 비교
+```
+
+### 지표
+
+| 지표 | 의미 |
+|---|---|
+| Recall@k | 정답 문단이 상위 k개에 들어온 비율. **생성 품질의 천장** |
+| MRR | 정답을 몇 번째로 맞혔는지 |
+| 답변 정확도 | `expect` 문자열이 답변에 있는가 |
+| 정직도 | 답 없는 질문에 "찾지 못했다"고 답한 비율 |
+| 태그별 Recall | 어떤 질문 유형에서 깨지는지 |
+
+검색이 실패하면 생성은 무조건 실패합니다. **Recall 을 먼저 봅니다.**
+답변이 나쁠 때 프롬프트부터 손대면 대개 시간을 낭비합니다.
+
+무검색 대비군에는 검색 단계가 없으므로 Recall 을 표시하지 않습니다.
+비교 대상은 답변 정확도와 정직도입니다.
+
+결과는 `data/eval/results/` 에 타임스탬프 JSON 으로 저장되어 변경 전후를
+비교할 수 있습니다.
+
 ## 다음 단계
 
-1. 평가 스크립트 — 정답표 기반 Recall 측정, 무검색 베이스라인 대비
+1. 정답표 작성 (질문 30~50개)
 2. 나머지 문서 색인 후 전체 측정
+3. 측정 결과를 보고 개선 지점 결정

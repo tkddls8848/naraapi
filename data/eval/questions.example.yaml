@@ -1,0 +1,36 @@
+# 정답표 예시. 이 파일을 questions.yaml 로 복사해 채운다.
+#
+# 작성 요령
+#   - document 는 GET /documents 가 보여주는 title 과 정확히 일치해야 한다
+#   - pages 는 정답이 실린 페이지. 여러 곳이면 모두 적는다
+#   - expect 를 적으면 답변에 그 문자열이 있는지 자동 채점한다.
+#     스펙 값은 정답이 하나로 떨어지므로 사람 판정이 필요 없다
+#   - 문서에 답이 없는 질문은 unanswerable: true. 지어내는지 확인하는 용도다
+#
+# 질문 구성 권장
+#   - 표 안의 정확한 수치를 묻는 질문을 다수로
+#   - 모델을 특정한 질문 (SR650 V4 vs SR650a V4 혼동 확인)
+#   - 답이 없는 질문 몇 개
+#   - "지원하나요" 류의 일반 질문은 검색 없이도 답이 나와 변별력이 낮다
+
+questions:
+  - id: q001
+    question: SR680a V4 최대 메모리 용량은?
+    answers:
+      - document: Lenovo ThinkSystem SR680a V4 Server
+        pages: [10]
+    expect: "4TB"
+    tags: [spec, memory]
+
+  - id: q002
+    question: SR650i V4 Inference Configuration 의 feature code 는?
+    answers:
+      - document: Lenovo ThinkSystem SR650a V4 and SR650i V4 Servers
+        pages: [15]
+    expect: "CF3G"
+    tags: [model-disambiguation]
+
+  - id: q003
+    question: SR999 V9 의 최대 드라이브 수는?
+    unanswerable: true
+    tags: [honesty]
