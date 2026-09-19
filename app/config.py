@@ -22,6 +22,8 @@ class Settings:
     pg_password: str = os.getenv("POSTGRES_PASSWORD", "change-me")
 
     embedding_provider: str = os.getenv("EMBEDDING_PROVIDER", "ollama")
+    llm_provider: str = os.getenv("LLM_PROVIDER", "ollama")
+    llm_model: str = os.getenv("LLM_MODEL", "qwen3:8b")
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "bge-m3")
     embedding_dim: int = _int("EMBEDDING_DIM", 1024)
@@ -29,6 +31,9 @@ class Settings:
     chunk_target_chars: int = _int("CHUNK_TARGET_CHARS", 1200)
     chunk_overlap_chars: int = _int("CHUNK_OVERLAP_CHARS", 200)
     embed_batch_size: int = _int("EMBED_BATCH_SIZE", 16)
+
+    search_top_k: int = _int("SEARCH_TOP_K", 10)
+    search_candidates: int = _int("SEARCH_CANDIDATES", 50)
 
     @property
     def dsn(self) -> str:

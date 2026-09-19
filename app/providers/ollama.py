@@ -1,4 +1,4 @@
-"""Ollama 임베딩 제공자."""
+"""Ollama 제공자 (임베딩 + 생성)."""
 from __future__ import annotations
 
 from typing import Sequence
@@ -35,3 +35,30 @@ class OllamaEmbeddingProvider:
                 f"EMBEDDING_DIM 을 맞추고 재색인하라."
             )
         return vectors
+
+
+class OllamaLLMProvider:
+    def __init__(self, base_url: str | None = None, model: str | None = None) -> None:
+        self._base_url = (base_url or settings.ollama_base_url).rstrip("/")
+        self._model = model or settings.llm_model
+
+    @property
+    def name(self) -> str:
+        return f"ollama/{self._model}"
+
+    def generate(self, system: str, user: str) -> str:
+        resp = httpx.post(
+            f"{self._base_url}/api/chat",
+            json={
+                "model": self._model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "stream": False,
+                "options": {"temperature": 0.0},   # 스펙 답변에 창의성은 해롭다
+            },
+            timeout=300.0,
+        )
+        resp.raise_for_status()
+        return resp.json()["message"]["content"].strip()

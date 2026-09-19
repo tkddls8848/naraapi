@@ -1,4 +1,24 @@
 services:
+  app:
+    build: .
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-specrag}
+      POSTGRES_USER: ${POSTGRES_USER:-specrag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      OLLAMA_BASE_URL: http://ollama:11434
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:8b}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+
   db:
     image: pgvector/pgvector:pg16
     environment:

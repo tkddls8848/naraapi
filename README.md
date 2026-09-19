@@ -11,7 +11,7 @@
 |---|---|
 | PDF 파싱 · 청킹 | 완료. 실제 Lenovo Press 문서로 검증 |
 | 임베딩 · DB 적재 | 코드 완료. 실행 검증은 로컬 환경 필요 |
-| 검색 · 질의응답 API | 미착수 |
+| 검색 · 질의응답 API | 완료. 실제 PostgreSQL 로 검증 |
 | 평가 스크립트 | 미착수 |
 
 | 문서 | 내용 |
@@ -74,6 +74,33 @@ docker compose exec ollama ollama pull bge-m3
 
 `--force` 로 재색인, `-v` 로 진행 상황 출력.
 
+### 질의응답
+
+```bash
+docker compose exec ollama ollama pull qwen3:8b
+./.venv/bin/uvicorn app.api.main:app --reload      # 또는 docker compose up app
+```
+
+```bash
+curl -X POST localhost:8000/ask -H 'content-type: application/json' \
+  -d '{"question":"SR650 V4 최대 메모리 용량은?"}'
+```
+
+| 엔드포인트 | 용도 |
+|---|---|
+| `POST /ask` | 질문 → 답변 + 출처. `use_rag:false` 로 무검색 대비군 |
+| `GET /documents` | 색인된 문서와 상태 |
+| `GET /health` | 상태 확인 |
+
+### 모델 없이 경로만 확인
+
+```bash
+EMBEDDING_PROVIDER=fake LLM_PROVIDER=fake ./.venv/bin/python -m app.ingest.cli data/pdfs/*.pdf
+```
+
+`fake` 제공자는 결정적 해시 임베딩과 더미 생성기입니다. 모델 다운로드 없이
+색인·검색·API 경로를 통째로 돌려볼 수 있습니다. 운영에는 쓰지 않습니다.
+
 ## 검증된 동작
 
 제품 가이드 6건(787페이지, 청크 5,415개) 전부 파싱 확인:
@@ -109,8 +136,25 @@ ThinkSystem SR650i V4 > Inference Model
 Description: ThinkSystem SR650i V4 Inference Configuration
 ```
 
+## 검색 동작
+
+밀집(pgvector 코사인) + 희소(전문검색) 두 경로를 RRF 로 결합합니다.
+질문에서 모델명을 감지해 해당 모델 청크로 범위를 좁힙니다.
+
+실제 PostgreSQL 에 SR650 V4(1,574청크) 와 SR650a/SR650i V4(999청크) 를
+색인하고 확인한 결과:
+
+```
+질문: "SR650i V4 Inference Configuration"
+  자동 필터: ['ThinkSystem SR650i V4']
+  1위: ... p15  ['ThinkSystem SR650i V4']      ← SR650i 전용 청크
+  → SR650 V4 청크 1,574개 중 단 한 건도 섞이지 않음
+
+질문: "존재하지 않는 모델 SR999 V9 스펙"
+  → "제공된 문서에서 찾지 못했습니다."  (출처 0건)
+```
+
 ## 다음 단계
 
-1. 검색 + 질의응답 API (하이브리드 검색, 출처 반환, RAG on/off 토글)
-2. 평가 스크립트 — 정답표 기반 Recall 측정, 베이스라인 대비
-3. 나머지 모델 문서 색인 후 모델 혼동 테스트 (SR650 V4 vs SR650a V4)
+1. 평가 스크립트 — 정답표 기반 Recall 측정, 무검색 베이스라인 대비
+2. 나머지 문서 색인 후 전체 측정
